@@ -307,51 +307,45 @@ export function isAdminOrAbove(user) {
   return user && (user.role === 'superadmin' || user.role === 'admin');
 }
 
-let _impl;
+let _useApi;
 
-async function _resolve() {
-  if (_impl) return _impl;
-  if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
-    _impl = local;
-    return _impl;
+export async function initDB() {
+  if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.()) {
+    try {
+      const r = await fetch('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      if (r.ok) { _useApi = true; return api.initDB(); }
+    } catch {}
   }
-  try {
-    const r = await fetch('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    if (r.ok) { _impl = api; return _impl; }
-  } catch {}
-  _impl = local;
-  return _impl;
+  _useApi = false;
+  return local.initDB();
 }
 
-const _api = (f) => (...a) => _resolve().then(i => i[f](...a));
-
-export const clearDatabase = _api('clearDatabase');
-export const initDB = _api('initDB');
-export const exportDatabase = _api('exportDatabase');
-export const importDatabase = _api('importDatabase');
-export const getAllUsers = _api('getAllUsers');
-export const getUserByUsername = _api('getUserByUsername');
-export const addUser = _api('addUser');
-export const updateUser = _api('updateUser');
-export const deleteUser = _api('deleteUser');
-export const getAllBoletas = _api('getAllBoletas');
-export const getBoletaById = _api('getBoletaById');
-export const addBoleta = _api('addBoleta');
-export const updateBoleta = _api('updateBoleta');
-export const deleteBoleta = _api('deleteBoleta');
-export const getAllEmpresas = _api('getAllEmpresas');
-export const getEmpresaById = _api('getEmpresaById');
-export const addEmpresa = _api('addEmpresa');
-export const updateEmpresa = _api('updateEmpresa');
-export const deleteEmpresa = _api('deleteEmpresa');
-export const getAllVehiculos = _api('getAllVehiculos');
-export const getVehiculoById = _api('getVehiculoById');
-export const addVehiculo = _api('addVehiculo');
-export const updateVehiculo = _api('updateVehiculo');
-export const deleteVehiculo = _api('deleteVehiculo');
-export const getAllMercaderias = _api('getAllMercaderias');
-export const addMercaderia = _api('addMercaderia');
-export const updateMercaderia = _api('updateMercaderia');
-export const deleteMercaderia = _api('deleteMercaderia');
-export const getConfig = _api('getConfig');
-export const updateConfig = _api('updateConfig');
+export async function clearDatabase() { return _useApi ? api.clearDatabase() : local.clearDatabase(); }
+export async function exportDatabase() { return _useApi ? api.exportDatabase() : local.exportDatabase(); }
+export async function importDatabase(d) { return _useApi ? api.importDatabase(d) : local.importDatabase(d); }
+export async function getAllUsers() { return _useApi ? api.getAllUsers() : local.getAllUsers(); }
+export async function getUserByUsername(u) { return _useApi ? api.getUserByUsername(u) : local.getUserByUsername(u); }
+export async function addUser(d) { return _useApi ? api.addUser(d) : local.addUser(d); }
+export async function updateUser(i, d) { return _useApi ? api.updateUser(i, d) : local.updateUser(i, d); }
+export async function deleteUser(i) { return _useApi ? api.deleteUser(i) : local.deleteUser(i); }
+export async function getAllBoletas() { return _useApi ? api.getAllBoletas() : local.getAllBoletas(); }
+export async function getBoletaById(i) { return _useApi ? api.getBoletaById(i) : local.getBoletaById(i); }
+export async function addBoleta(d) { return _useApi ? api.addBoleta(d) : local.addBoleta(d); }
+export async function updateBoleta(i, d) { return _useApi ? api.updateBoleta(i, d) : local.updateBoleta(i, d); }
+export async function deleteBoleta(i) { return _useApi ? api.deleteBoleta(i) : local.deleteBoleta(i); }
+export async function getAllEmpresas() { return _useApi ? api.getAllEmpresas() : local.getAllEmpresas(); }
+export async function getEmpresaById(i) { return _useApi ? api.getEmpresaById(i) : local.getEmpresaById(i); }
+export async function addEmpresa(d) { return _useApi ? api.addEmpresa(d) : local.addEmpresa(d); }
+export async function updateEmpresa(i, d) { return _useApi ? api.updateEmpresa(i, d) : local.updateEmpresa(i, d); }
+export async function deleteEmpresa(i) { return _useApi ? api.deleteEmpresa(i) : local.deleteEmpresa(i); }
+export async function getAllVehiculos() { return _useApi ? api.getAllVehiculos() : local.getAllVehiculos(); }
+export async function getVehiculoById(i) { return _useApi ? api.getVehiculoById(i) : local.getVehiculoById(i); }
+export async function addVehiculo(d) { return _useApi ? api.addVehiculo(d) : local.addVehiculo(d); }
+export async function updateVehiculo(i, d) { return _useApi ? api.updateVehiculo(i, d) : local.updateVehiculo(i, d); }
+export async function deleteVehiculo(i) { return _useApi ? api.deleteVehiculo(i) : local.deleteVehiculo(i); }
+export async function getAllMercaderias() { return _useApi ? api.getAllMercaderias() : local.getAllMercaderias(); }
+export async function addMercaderia(d) { return _useApi ? api.addMercaderia(d) : local.addMercaderia(d); }
+export async function updateMercaderia(i, d) { return _useApi ? api.updateMercaderia(i, d) : local.updateMercaderia(i, d); }
+export async function deleteMercaderia(i) { return _useApi ? api.deleteMercaderia(i) : local.deleteMercaderia(i); }
+export async function getConfig() { return _useApi ? api.getConfig() : local.getConfig(); }
+export async function updateConfig(d) { return _useApi ? api.updateConfig(d) : local.updateConfig(d); }
