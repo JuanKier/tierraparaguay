@@ -323,22 +323,35 @@ async function _resolve() {
   return _impl;
 }
 
-function _lazy(obj) {
-  return new Proxy(obj, {
-    get(_, prop) {
-      return async (...args) => (await _resolve())[prop](...args);
-    }
-  });
-}
+const _api = (f) => (...a) => _resolve().then(i => i[f](...a));
 
-const _WRAPPED = _lazy({});
-
-export const {
-  clearDatabase, initDB, exportDatabase, importDatabase,
-  getAllUsers, getUserByUsername, addUser, updateUser, deleteUser,
-  getAllBoletas, getBoletaById, addBoleta, updateBoleta, deleteBoleta,
-  getAllEmpresas, getEmpresaById, addEmpresa, updateEmpresa, deleteEmpresa,
-  getAllVehiculos, getVehiculoById, addVehiculo, updateVehiculo, deleteVehiculo,
-  getAllMercaderias, addMercaderia, updateMercaderia, deleteMercaderia,
-  getConfig, updateConfig
-} = _WRAPPED;
+export const clearDatabase = _api('clearDatabase');
+export const initDB = _api('initDB');
+export const exportDatabase = _api('exportDatabase');
+export const importDatabase = _api('importDatabase');
+export const getAllUsers = _api('getAllUsers');
+export const getUserByUsername = _api('getUserByUsername');
+export const addUser = _api('addUser');
+export const updateUser = _api('updateUser');
+export const deleteUser = _api('deleteUser');
+export const getAllBoletas = _api('getAllBoletas');
+export const getBoletaById = _api('getBoletaById');
+export const addBoleta = _api('addBoleta');
+export const updateBoleta = _api('updateBoleta');
+export const deleteBoleta = _api('deleteBoleta');
+export const getAllEmpresas = _api('getAllEmpresas');
+export const getEmpresaById = _api('getEmpresaById');
+export const addEmpresa = _api('addEmpresa');
+export const updateEmpresa = _api('updateEmpresa');
+export const deleteEmpresa = _api('deleteEmpresa');
+export const getAllVehiculos = _api('getAllVehiculos');
+export const getVehiculoById = _api('getVehiculoById');
+export const addVehiculo = _api('addVehiculo');
+export const updateVehiculo = _api('updateVehiculo');
+export const deleteVehiculo = _api('deleteVehiculo');
+export const getAllMercaderias = _api('getAllMercaderias');
+export const addMercaderia = _api('addMercaderia');
+export const updateMercaderia = _api('updateMercaderia');
+export const deleteMercaderia = _api('deleteMercaderia');
+export const getConfig = _api('getConfig');
+export const updateConfig = _api('updateConfig');
