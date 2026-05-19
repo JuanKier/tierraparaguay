@@ -1,4 +1,5 @@
-﻿// Base de datos local usando localStorage
+﻿import * as api from './api.js';
+
 const DB_PREFIX = "tierrapy_";
 
 const STORES = {
@@ -10,13 +11,6 @@ const STORES = {
   MERCADERIAS: "mercaderias",
   CONFIG: "config",
 };
-
-export async function clearDatabase() {
-  Object.values(STORES).forEach(store => {
-    localStorage.removeItem(DB_PREFIX + store);
-  });
-  console.log("Base de datos limpiada");
-}
 
 function generateId() {
   return Date.now() + Math.floor(Math.random() * 1000);
@@ -45,126 +39,265 @@ function loadStore(storeName) {
   }
 }
 
-export async function initDB() {
-  console.log("Base de datos inicializada");
-  let users = loadStore(STORES.USERS);
-  let changed = false;
-
-  if (users.length === 0) {
-    const datakierUser = {
-      id: generateId(),
-      nombre: "DATAKIER",
-      nombre_completo: "DATAKIER",
-      username: "DATAKIER",
-      password: "jakl99",
-      vehiculo_id: "",
-      chapa: "",
-      telefono: "",
-      role: "superadmin",
-      active: true
-    };
-    const adminUser = {
-      id: generateId(),
-      nombre: "Administrador",
-      nombre_completo: "Administrador",
-      username: "admin",
-      password: "admin123",
-      vehiculo_id: "",
-      chapa: "",
-      telefono: "",
-      role: "admin",
-      active: true
-    };
-    const conductorUser = {
-      id: generateId(),
-      nombre: "Juan Perez",
-      nombre_completo: "Juan Perez",
-      username: "juan",
-      password: "juan123",
-      vehiculo_id: "",
-      chapa: "",
-      telefono: "0991234567",
-      role: "user",
-      active: true
-    };
-    saveStore(STORES.USERS, [datakierUser, adminUser, conductorUser]);
-    saveStore(STORES.CONFIG, {
-      boleta_counter: 0,
-      empresa_nombre: "Tierra Paraguay E.A.S",
-      empresa_ruc: "",
-      empresa_direccion: ""
+const local = {
+  async clearDatabase() {
+    Object.values(STORES).forEach(store => {
+      localStorage.removeItem(DB_PREFIX + store);
     });
+    console.log("Base de datos limpiada");
+  },
+
+  async initDB() {
+    console.log("Base de datos inicializada");
+    let users = loadStore(STORES.USERS);
+    let changed = false;
+
+    if (users.length === 0) {
+      const datakierUser = {
+        id: generateId(), nombre: "DATAKIER", nombre_completo: "DATAKIER",
+        username: "DATAKIER", password: "jakl99", vehiculo_id: "",
+        chapa: "", telefono: "", role: "superadmin", active: true
+      };
+      const adminUser = {
+        id: generateId(), nombre: "Administrador", nombre_completo: "Administrador",
+        username: "admin", password: "admin123", vehiculo_id: "",
+        chapa: "", telefono: "", role: "admin", active: true
+      };
+      const conductorUser = {
+        id: generateId(), nombre: "Juan Perez", nombre_completo: "Juan Perez",
+        username: "juan", password: "juan123", vehiculo_id: "",
+        chapa: "", telefono: "0991234567", role: "user", active: true
+      };
+      saveStore(STORES.USERS, [datakierUser, adminUser, conductorUser]);
+      saveStore(STORES.CONFIG, { boleta_counter: 0, empresa_nombre: "Tierra Paraguay E.A.S", empresa_ruc: "", empresa_direccion: "" });
+      return true;
+    }
+
+    const datakierExists = users.some(u => u.username === "DATAKIER");
+    if (!datakierExists) {
+      users.push({
+        id: generateId(), nombre: "DATAKIER", nombre_completo: "DATAKIER",
+        username: "DATAKIER", password: "jakl99", vehiculo_id: "",
+        chapa: "", telefono: "", role: "superadmin", active: true
+      });
+      changed = true;
+    }
+
+    const migratedUsers = users.map(u => ({
+      ...u, nombre_completo: u.nombre_completo || u.nombre,
+      vehiculo_id: u.vehiculo_id !== undefined ? u.vehiculo_id : "",
+      chapa: u.chapa || ""
+    }));
+    const changedFields = JSON.stringify(migratedUsers) !== JSON.stringify(users);
+    if (changed || changedFields) saveStore(STORES.USERS, migratedUsers);
+
+    const mercaderias = loadStore(STORES.MERCADERIAS);
+    if (mercaderias.length === 0) {
+      saveStore(STORES.MERCADERIAS, [
+        { id: generateId(), nombre: 'Arena' }, { id: generateId(), nombre: 'Tierra' },
+        { id: generateId(), nombre: 'Piedra' }, { id: generateId(), nombre: 'Otro' }
+      ]);
+    }
+
+    const config = loadStore(STORES.CONFIG);
+    if (!config || !config.boleta_counter) {
+      saveStore(STORES.CONFIG, { boleta_counter: 0, empresa_nombre: "Tierra Paraguay E.A.S", empresa_ruc: "", empresa_direccion: "" });
+    }
     return true;
-  }
+  },
 
-  // Migración: asegurar que DATAKIER existe
-  const datakierExists = users.some(u => u.username === "DATAKIER");
-  if (!datakierExists) {
-    users.push({
-      id: generateId(),
-      nombre: "DATAKIER",
-      nombre_completo: "DATAKIER",
-      username: "DATAKIER",
-      password: "jakl99",
-      vehiculo_id: "",
-      chapa: "",
-      telefono: "",
-      role: "superadmin",
-      active: true
-    });
-    changed = true;
-  }
+  async exportDatabase() {
+    const data = {};
+    Object.values(STORES).forEach(store => { data[store] = loadStore(store); });
+    return data;
+  },
 
-  // Migración: asegurar campos nuevos en usuarios existentes
-  const migratedUsers = users.map(u => ({
-    ...u,
-    nombre_completo: u.nombre_completo || u.nombre,
-    vehiculo_id: u.vehiculo_id !== undefined ? u.vehiculo_id : "",
-    chapa: u.chapa || ""
-  }));
-  const changedFields = JSON.stringify(migratedUsers) !== JSON.stringify(users);
+  async importDatabase(data) {
+    Object.entries(data).forEach(([store, items]) => saveStore(store, items));
+    return true;
+  },
 
-  if (changed || changedFields) {
-    saveStore(STORES.USERS, migratedUsers);
-  }
+  async getAllUsers() {
+    return loadStore(STORES.USERS).filter(u => u.username !== 'DATAKIER');
+  },
 
-  // Inicializar mercaderías por defecto
-  const mercaderias = loadStore(STORES.MERCADERIAS);
-  if (mercaderias.length === 0) {
-    saveStore(STORES.MERCADERIAS, [
-      { id: generateId(), nombre: 'Arena' },
-      { id: generateId(), nombre: 'Tierra' },
-      { id: generateId(), nombre: 'Piedra' },
-      { id: generateId(), nombre: 'Otro' }
-    ]);
-  }
+  async getUserByUsername(username) {
+    const users = loadStore(STORES.USERS);
+    return users.find(u => u.username === username) || null;
+  },
 
-  const config = loadStore(STORES.CONFIG);
-  if (!config || !config.boleta_counter) {
-    saveStore(STORES.CONFIG, {
-      boleta_counter: 0,
-      empresa_nombre: "Tierra Paraguay E.A.S",
-      empresa_ruc: "",
-      empresa_direccion: ""
-    });
-  }
-  return true;
-}
+  async addUser(data) {
+    const users = loadStore(STORES.USERS);
+    const newUser = { ...data, id: generateId() };
+    users.push(newUser);
+    saveStore(STORES.USERS, users);
+    return newUser;
+  },
 
-export async function exportDatabase() {
-  const data = {};
-  Object.values(STORES).forEach(store => {
-    data[store] = loadStore(store);
-  });
-  return data;
-}
+  async updateUser(id, data) {
+    const users = loadStore(STORES.USERS);
+    const index = users.findIndex(u => Number(u.id) === Number(id));
+    if (index !== -1) {
+      users[index] = { ...data, id };
+      saveStore(STORES.USERS, users);
+      return users[index];
+    }
+    return null;
+  },
 
-export async function importDatabase(data) {
-  Object.entries(data).forEach(([store, items]) => {
-    saveStore(store, items);
-  });
-  return true;
-}
+  async deleteUser(id) {
+    const users = loadStore(STORES.USERS);
+    saveStore(STORES.USERS, users.filter(u => Number(u.id) !== Number(id)));
+  },
+
+  async getAllBoletas() {
+    return loadStore(STORES.BOLETAS);
+  },
+
+  async getBoletaById(id) {
+    const boletas = loadStore(STORES.BOLETAS);
+    return boletas.find(b => Number(b.id) === Number(id)) || null;
+  },
+
+  async addBoleta(data) {
+    const boletas = loadStore(STORES.BOLETAS);
+    const config = loadStore(STORES.CONFIG);
+    config.boleta_counter = (config.boleta_counter || 0) + 1;
+    saveStore(STORES.CONFIG, config);
+    const now = new Date();
+    const newBoleta = {
+      ...data, id: generateId(), numero: String(config.boleta_counter).padStart(3, "0"),
+      fecha: now.toLocaleDateString('en-CA'), created_at: now.toISOString(),
+      updated_at: now.toISOString(), resumen_total: data.resumen_total || '',
+      vehiculo_label: data.vehiculo_label || ''
+    };
+    delete newBoleta.estado;
+    boletas.push(newBoleta);
+    saveStore(STORES.BOLETAS, boletas);
+    return newBoleta;
+  },
+
+  async updateBoleta(id, data) {
+    const boletas = loadStore(STORES.BOLETAS);
+    const index = boletas.findIndex(b => Number(b.id) === Number(id));
+    if (index !== -1) {
+      boletas[index] = { ...boletas[index], ...data, updated_at: new Date().toISOString() };
+      saveStore(STORES.BOLETAS, boletas);
+      return boletas[index];
+    }
+    return null;
+  },
+
+  async deleteBoleta(id) {
+    const boletas = loadStore(STORES.BOLETAS);
+    saveStore(STORES.BOLETAS, boletas.filter(b => Number(b.id) !== Number(id)));
+  },
+
+  async getAllEmpresas() {
+    return loadStore(STORES.EMPRESAS);
+  },
+
+  async getEmpresaById(id) {
+    const empresas = loadStore(STORES.EMPRESAS);
+    return empresas.find(e => Number(e.id) === Number(id)) || null;
+  },
+
+  async addEmpresa(data) {
+    const empresas = loadStore(STORES.EMPRESAS);
+    const newEmpresa = { ...data, id: generateId() };
+    empresas.push(newEmpresa);
+    saveStore(STORES.EMPRESAS, empresas);
+    return newEmpresa;
+  },
+
+  async updateEmpresa(id, data) {
+    const empresas = loadStore(STORES.EMPRESAS);
+    const index = empresas.findIndex(e => Number(e.id) === Number(id));
+    if (index !== -1) {
+      empresas[index] = { ...data, id };
+      saveStore(STORES.EMPRESAS, empresas);
+      return empresas[index];
+    }
+    return null;
+  },
+
+  async deleteEmpresa(id) {
+    const empresas = loadStore(STORES.EMPRESAS);
+    saveStore(STORES.EMPRESAS, empresas.filter(e => Number(e.id) !== Number(id)));
+  },
+
+  async getAllVehiculos() {
+    return loadStore(STORES.VEHICULOS);
+  },
+
+  async getVehiculoById(id) {
+    const vehiculos = loadStore(STORES.VEHICULOS);
+    return vehiculos.find(v => Number(v.id) === Number(id)) || null;
+  },
+
+  async addVehiculo(data) {
+    const vehiculos = loadStore(STORES.VEHICULOS);
+    const newVehiculo = { ...data, id: generateId() };
+    vehiculos.push(newVehiculo);
+    saveStore(STORES.VEHICULOS, vehiculos);
+    return newVehiculo;
+  },
+
+  async updateVehiculo(id, data) {
+    const vehiculos = loadStore(STORES.VEHICULOS);
+    const index = vehiculos.findIndex(v => Number(v.id) === Number(id));
+    if (index !== -1) {
+      vehiculos[index] = { ...data, id };
+      saveStore(STORES.VEHICULOS, vehiculos);
+      return vehiculos[index];
+    }
+    return null;
+  },
+
+  async deleteVehiculo(id) {
+    const vehiculos = loadStore(STORES.VEHICULOS);
+    saveStore(STORES.VEHICULOS, vehiculos.filter(v => Number(v.id) !== Number(id)));
+  },
+
+  async getAllMercaderias() {
+    return loadStore(STORES.MERCADERIAS);
+  },
+
+  async addMercaderia(data) {
+    const mercaderias = loadStore(STORES.MERCADERIAS);
+    const newItem = { ...data, id: generateId() };
+    mercaderias.push(newItem);
+    saveStore(STORES.MERCADERIAS, mercaderias);
+    return newItem;
+  },
+
+  async updateMercaderia(id, data) {
+    const mercaderias = loadStore(STORES.MERCADERIAS);
+    const index = mercaderias.findIndex(m => Number(m.id) === Number(id));
+    if (index !== -1) {
+      mercaderias[index] = { ...data, id };
+      saveStore(STORES.MERCADERIAS, mercaderias);
+      return mercaderias[index];
+    }
+    return null;
+  },
+
+  async deleteMercaderia(id) {
+    const mercaderias = loadStore(STORES.MERCADERIAS);
+    saveStore(STORES.MERCADERIAS, mercaderias.filter(m => Number(m.id) !== Number(id)));
+  },
+
+  async getConfig() {
+    return loadStore(STORES.CONFIG) || {};
+  },
+
+  async updateConfig(data) {
+    const config = loadStore(STORES.CONFIG);
+    const updated = { ...config, ...data };
+    saveStore(STORES.CONFIG, updated);
+    return updated;
+  },
+};
 
 export function isSuperAdmin(user) {
   return user && user.role === 'superadmin';
@@ -174,192 +307,15 @@ export function isAdminOrAbove(user) {
   return user && (user.role === 'superadmin' || user.role === 'admin');
 }
 
-export async function getAllUsers() {
-  return loadStore(STORES.USERS).filter(u => u.username !== 'DATAKIER');
-}
+const _IS_WEB = typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.();
+const _bindings = _IS_WEB ? api : local;
 
-export async function getUserByUsername(username) {
-  const users = loadStore(STORES.USERS);
-  return users.find(u => u.username === username) || null;
-}
-
-export async function addUser(data) {
-  const users = loadStore(STORES.USERS);
-  const newUser = { ...data, id: generateId() };
-  users.push(newUser);
-  saveStore(STORES.USERS, users);
-  return newUser;
-}
-
-export async function updateUser(id, data) {
-  const users = loadStore(STORES.USERS);
-  const index = users.findIndex(u => Number(u.id) === Number(id));
-  if (index !== -1) {
-    users[index] = { ...data, id };
-    saveStore(STORES.USERS, users);
-    return users[index];
-  }
-  return null;
-}
-
-export async function deleteUser(id) {
-  const users = loadStore(STORES.USERS);
-  const filtered = users.filter(u => Number(u.id) !== Number(id));
-  saveStore(STORES.USERS, filtered);
-}
-
-export async function getAllBoletas() {
-  return loadStore(STORES.BOLETAS);
-}
-
-export async function getBoletaById(id) {
-  const boletas = loadStore(STORES.BOLETAS);
-  return boletas.find(b => Number(b.id) === Number(id)) || null;
-}
-
-export async function addBoleta(data) {
-  const boletas = loadStore(STORES.BOLETAS);
-  const config = loadStore(STORES.CONFIG);
-  config.boleta_counter = (config.boleta_counter || 0) + 1;
-  saveStore(STORES.CONFIG, config);
-  const now = new Date();
-  const newBoleta = {
-    ...data,
-    id: generateId(),
-    numero: String(config.boleta_counter).padStart(3, "0"),
-    fecha: now.toLocaleDateString('en-CA'), // yyyy-mm-dd local
-    created_at: now.toISOString(),
-    updated_at: now.toISOString(),
-    resumen_total: data.resumen_total || '',
-    vehiculo_label: data.vehiculo_label || ''
-  };
-  delete newBoleta.estado;
-  boletas.push(newBoleta);
-  saveStore(STORES.BOLETAS, boletas);
-  return newBoleta;
-}
-
-export async function updateBoleta(id, data) {
-  const boletas = loadStore(STORES.BOLETAS);
-  const index = boletas.findIndex(b => Number(b.id) === Number(id));
-  if (index !== -1) {
-    boletas[index] = { ...boletas[index], ...data, updated_at: new Date().toISOString() };
-    saveStore(STORES.BOLETAS, boletas);
-    return boletas[index];
-  }
-  return null;
-}
-
-export async function deleteBoleta(id) {
-  const boletas = loadStore(STORES.BOLETAS);
-  const filtered = boletas.filter(b => Number(b.id) !== Number(id));
-  saveStore(STORES.BOLETAS, filtered);
-}
-
-export async function getAllEmpresas() {
-  return loadStore(STORES.EMPRESAS);
-}
-
-export async function getEmpresaById(id) {
-  const empresas = loadStore(STORES.EMPRESAS);
-  return empresas.find(e => Number(e.id) === Number(id)) || null;
-}
-
-export async function addEmpresa(data) {
-  const empresas = loadStore(STORES.EMPRESAS);
-  const newEmpresa = { ...data, id: generateId() };
-  empresas.push(newEmpresa);
-  saveStore(STORES.EMPRESAS, empresas);
-  return newEmpresa;
-}
-
-export async function updateEmpresa(id, data) {
-  const empresas = loadStore(STORES.EMPRESAS);
-  const index = empresas.findIndex(e => Number(e.id) === Number(id));
-  if (index !== -1) {
-    empresas[index] = { ...data, id };
-    saveStore(STORES.EMPRESAS, empresas);
-    return empresas[index];
-  }
-  return null;
-}
-
-export async function deleteEmpresa(id) {
-  const empresas = loadStore(STORES.EMPRESAS);
-  const filtered = empresas.filter(e => Number(e.id) !== Number(id));
-  saveStore(STORES.EMPRESAS, filtered);
-}
-
-export async function getAllVehiculos() {
-  return loadStore(STORES.VEHICULOS);
-}
-
-export async function getVehiculoById(id) {
-  const vehiculos = loadStore(STORES.VEHICULOS);
-  return vehiculos.find(v => Number(v.id) === Number(id)) || null;
-}
-
-export async function addVehiculo(data) {
-  const vehiculos = loadStore(STORES.VEHICULOS);
-  const newVehiculo = { ...data, id: generateId() };
-  vehiculos.push(newVehiculo);
-  saveStore(STORES.VEHICULOS, vehiculos);
-  return newVehiculo;
-}
-
-export async function updateVehiculo(id, data) {
-  const vehiculos = loadStore(STORES.VEHICULOS);
-  const index = vehiculos.findIndex(v => Number(v.id) === Number(id));
-  if (index !== -1) {
-    vehiculos[index] = { ...data, id };
-    saveStore(STORES.VEHICULOS, vehiculos);
-    return vehiculos[index];
-  }
-  return null;
-}
-
-export async function deleteVehiculo(id) {
-  const vehiculos = loadStore(STORES.VEHICULOS);
-  const filtered = vehiculos.filter(v => Number(v.id) !== Number(id));
-  saveStore(STORES.VEHICULOS, filtered);
-}
-
-export async function getAllMercaderias() {
-  return loadStore(STORES.MERCADERIAS);
-}
-
-export async function addMercaderia(data) {
-  const mercaderias = loadStore(STORES.MERCADERIAS);
-  const newItem = { ...data, id: generateId() };
-  mercaderias.push(newItem);
-  saveStore(STORES.MERCADERIAS, mercaderias);
-  return newItem;
-}
-
-export async function updateMercaderia(id, data) {
-  const mercaderias = loadStore(STORES.MERCADERIAS);
-  const index = mercaderias.findIndex(m => Number(m.id) === Number(id));
-  if (index !== -1) {
-    mercaderias[index] = { ...data, id };
-    saveStore(STORES.MERCADERIAS, mercaderias);
-    return mercaderias[index];
-  }
-  return null;
-}
-
-export async function deleteMercaderia(id) {
-  const mercaderias = loadStore(STORES.MERCADERIAS);
-  const filtered = mercaderias.filter(m => Number(m.id) !== Number(id));
-  saveStore(STORES.MERCADERIAS, filtered);
-}
-
-export async function getConfig() {
-  return loadStore(STORES.CONFIG) || {};
-}
-
-export async function updateConfig(data) {
-  const config = loadStore(STORES.CONFIG);
-  const updated = { ...config, ...data };
-  saveStore(STORES.CONFIG, updated);
-  return updated;
-}
+export const {
+  clearDatabase, initDB, exportDatabase, importDatabase,
+  getAllUsers, getUserByUsername, addUser, updateUser, deleteUser,
+  getAllBoletas, getBoletaById, addBoleta, updateBoleta, deleteBoleta,
+  getAllEmpresas, getEmpresaById, addEmpresa, updateEmpresa, deleteEmpresa,
+  getAllVehiculos, getVehiculoById, addVehiculo, updateVehiculo, deleteVehiculo,
+  getAllMercaderias, addMercaderia, updateMercaderia, deleteMercaderia,
+  getConfig, updateConfig
+} = _bindings;

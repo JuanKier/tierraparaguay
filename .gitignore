@@ -4,3 +4,5 @@ android/
 screenshots/
 *.apk
 .tierrapy/
+server/data/
+server/node_modules/
