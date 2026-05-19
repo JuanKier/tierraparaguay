@@ -49,6 +49,13 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+const sseClients = [];
+
+function broadcast(event, data = {}) {
+  const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  sseClients.forEach(c => c.write(msg));
+}
+
 // ---- USERS ----
 app.get('/api/users', (req, res) => {
   const users = db.prepare('SELECT * FROM users').all();
@@ -61,14 +68,17 @@ app.get('/api/users/:username', (req, res) => {
 app.post('/api/users', (req, res) => {
   const stmt = db.prepare('INSERT INTO users (nombre, nombre_completo, username, password, vehiculo_id, chapa, telefono, role, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const r = stmt.run(req.body.nombre, req.body.nombre_completo, req.body.username, req.body.password, req.body.vehiculo_id || null, req.body.chapa || '', req.body.telefono || '', req.body.role || 'user', req.body.active !== false ? 1 : 0);
+  broadcast('data_changed', { store: 'users' });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 app.put('/api/users/:id', (req, res) => {
   db.prepare(`UPDATE users SET nombre=?, nombre_completo=?, username=?, password=?, vehiculo_id=?, chapa=?, telefono=?, role=?, active=? WHERE id=?`).run(req.body.nombre, req.body.nombre_completo, req.body.username, req.body.password, req.body.vehiculo_id || null, req.body.chapa || '', req.body.telefono || '', req.body.role || 'user', req.body.active !== false ? 1 : 0, req.params.id);
+  broadcast('data_changed', { store: 'users' });
   res.json({ success: true });
 });
 app.delete('/api/users/:id', (req, res) => {
   db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
+  broadcast('data_changed', { store: 'users' });
   res.json({ success: true });
 });
 
@@ -80,14 +90,17 @@ app.get('/api/empresas/:id', (req, res) => {
 });
 app.post('/api/empresas', (req, res) => {
   const r = db.prepare('INSERT INTO empresas (nombre, direccion, ruc, telefono) VALUES (?,?,?,?)').run(req.body.nombre, req.body.direccion, req.body.ruc || '', req.body.telefono || '');
+  broadcast('data_changed', { store: 'empresas' });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 app.put('/api/empresas/:id', (req, res) => {
   db.prepare('UPDATE empresas SET nombre=?, direccion=?, ruc=?, telefono=? WHERE id=?').run(req.body.nombre, req.body.direccion, req.body.ruc || '', req.body.telefono || '', req.params.id);
+  broadcast('data_changed', { store: 'empresas' });
   res.json({ success: true });
 });
 app.delete('/api/empresas/:id', (req, res) => {
   db.prepare('DELETE FROM empresas WHERE id=?').run(req.params.id);
+  broadcast('data_changed', { store: 'empresas' });
   res.json({ success: true });
 });
 
@@ -99,14 +112,17 @@ app.get('/api/vehiculos/:id', (req, res) => {
 });
 app.post('/api/vehiculos', (req, res) => {
   const r = db.prepare('INSERT INTO vehiculos (tipo, marca, modelo, color, chapa, conductor_id) VALUES (?,?,?,?,?,?)').run(req.body.tipo, req.body.marca, req.body.modelo, req.body.color, req.body.chapa, req.body.conductor_id || null);
+  broadcast('data_changed', { store: 'vehiculos' });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 app.put('/api/vehiculos/:id', (req, res) => {
   db.prepare('UPDATE vehiculos SET tipo=?, marca=?, modelo=?, color=?, chapa=?, conductor_id=? WHERE id=?').run(req.body.tipo, req.body.marca, req.body.modelo, req.body.color, req.body.chapa, req.body.conductor_id || null, req.params.id);
+  broadcast('data_changed', { store: 'vehiculos' });
   res.json({ success: true });
 });
 app.delete('/api/vehiculos/:id', (req, res) => {
   db.prepare('DELETE FROM vehiculos WHERE id=?').run(req.params.id);
+  broadcast('data_changed', { store: 'vehiculos' });
   res.json({ success: true });
 });
 
@@ -114,14 +130,17 @@ app.delete('/api/vehiculos/:id', (req, res) => {
 app.get('/api/mercaderias', (req, res) => res.json(db.prepare('SELECT * FROM mercaderias').all()));
 app.post('/api/mercaderias', (req, res) => {
   const r = db.prepare('INSERT OR IGNORE INTO mercaderias (nombre) VALUES (?)').run(req.body.nombre);
+  broadcast('data_changed', { store: 'mercaderias' });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 app.put('/api/mercaderias/:id', (req, res) => {
   db.prepare('UPDATE mercaderias SET nombre=? WHERE id=?').run(req.body.nombre, req.params.id);
+  broadcast('data_changed', { store: 'mercaderias' });
   res.json({ success: true });
 });
 app.delete('/api/mercaderias/:id', (req, res) => {
   db.prepare('DELETE FROM mercaderias WHERE id=?').run(req.params.id);
+  broadcast('data_changed', { store: 'mercaderias' });
   res.json({ success: true });
 });
 
@@ -143,15 +162,18 @@ app.post('/api/boletas', (req, res) => {
   const r = db.prepare(`INSERT INTO boletas (numero, fecha, conductor_id, conductor_nombre, chapa, vehiculo_label, empresa_id, empresa_nombre, direccion_entrega, telefono_empresa, factura_numero, observacion, total_m3, resumen_total, servicios, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
     String(num).padStart(3, '0'), req.body.fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, now
   );
+  broadcast('data_changed', { store: 'boletas' });
   res.json({ ...req.body, id: r.lastInsertRowid, numero: String(num).padStart(3, '0'), created_at: now, updated_at: now, servicios: req.body.servicios || [] });
 });
 app.put('/api/boletas/:id', (req, res) => {
   const now = new Date().toISOString();
   db.prepare(`UPDATE boletas SET fecha=?, conductor_id=?, conductor_nombre=?, chapa=?, vehiculo_label=?, empresa_id=?, empresa_nombre=?, direccion_entrega=?, telefono_empresa=?, factura_numero=?, observacion=?, total_m3=?, resumen_total=?, servicios=?, updated_at=? WHERE id=?`).run(req.body.fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, req.params.id);
+  broadcast('data_changed', { store: 'boletas' });
   res.json({ success: true });
 });
 app.delete('/api/boletas/:id', (req, res) => {
   db.prepare('DELETE FROM boletas WHERE id=?').run(req.params.id);
+  broadcast('data_changed', { store: 'boletas' });
   res.json({ success: true });
 });
 
@@ -165,6 +187,7 @@ app.get('/api/config', (req, res) => {
 app.post('/api/config', (req, res) => {
   const s = db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)");
   Object.entries(req.body).forEach(([k, v]) => s.run(k, String(v)));
+  broadcast('data_changed', { store: 'config' });
   res.json({ success: true });
 });
 
@@ -177,6 +200,7 @@ app.post('/api/import', (req, res) => {
   if (data.mercaderias) { const s = db.prepare('INSERT INTO mercaderias (id,nombre) VALUES (?,?)'); data.mercaderias.forEach(m => s.run(m.id, m.nombre)); }
   if (data.boletas) { const s = db.prepare('INSERT INTO boletas (id,numero,fecha,conductor_id,conductor_nombre,chapa,vehiculo_label,empresa_id,empresa_nombre,direccion_entrega,telefono_empresa,factura_numero,observacion,total_m3,resumen_total,servicios,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'); data.boletas.forEach(b => s.run(b.id, b.numero, b.fecha, b.conductor_id, b.conductor_nombre, b.chapa || '', b.vehiculo_label || '', b.empresa_id, b.empresa_nombre, b.direccion_entrega, b.telefono_empresa || '', b.factura_numero || '', b.observacion || '', b.total_m3 || 0, b.resumen_total || '', JSON.stringify(b.servicios || []), b.created_at, b.updated_at)); }
   if (data.config) { const s = db.prepare('INSERT OR REPLACE INTO config (key,value) VALUES (?,?)'); Object.entries(data.config).forEach(([k, v]) => s.run(k, String(v))); }
+  broadcast('data_changed', { store: 'all' });
   res.json({ success: true });
 });
 
@@ -208,6 +232,15 @@ app.post('/api/seed', (req, res) => {
   const sm = db.prepare('INSERT OR IGNORE INTO mercaderias (nombre) VALUES (?)');
   mercs.forEach(m => sm.run(m));
   res.json({ message: 'seeded' });
+});
+
+// ---- SSE ----
+app.get('/api/events', (req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+  res.write('event: connected\ndata: {}\n\n');
+  sseClients.push(res);
+  req.on('close', () => { const i = sseClients.indexOf(res); if (i !== -1) sseClients.splice(i, 1); });
+  req.on('error', () => { const i = sseClients.indexOf(res); if (i !== -1) sseClients.splice(i, 1); });
 });
 
 // Serve frontend in production

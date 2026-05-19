@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSSE } from '../hooks/useSSE'
 import { getAllUsers, addUser, updateUser, deleteUser, getAllVehiculos, getVehiculoById } from '../db/database'
 
 export default function Conductores({ user }) {
@@ -25,6 +26,8 @@ export default function Conductores({ user }) {
     }
     loadData()
   }, [])
+
+  useSSE('data_changed', loadData)
 
   const loadData = async () => {
     const u = await getAllUsers()
