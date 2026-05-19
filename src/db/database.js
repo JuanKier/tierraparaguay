@@ -1,5 +1,5 @@
 ﻿const DB_PREFIX = "tierrapy_";
-const API = '/api';
+const API = import.meta.env.VITE_API_URL || '/api';
 
 async function _req(method, path, body) {
   try {
