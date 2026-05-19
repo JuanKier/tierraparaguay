@@ -19,15 +19,8 @@ export default function Conductores({ user }) {
   })
 
   useEffect(() => {
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
-      alert('Acceso restringido')
-      window.history.back()
-      return
-    }
     loadData()
   }, [])
-
-  useSSE('data_changed', loadData)
 
   const loadData = async () => {
     const u = await getAllUsers()
@@ -35,6 +28,8 @@ export default function Conductores({ user }) {
     const v = await getAllVehiculos()
     setVehiculos(v)
   }
+
+  useSSE('data_changed', loadData)
 
   const getVehiculoInfo = (id) => {
     const v = vehiculos.find(v => Number(v.id) === Number(id))

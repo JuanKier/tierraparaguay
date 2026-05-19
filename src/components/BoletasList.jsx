@@ -12,8 +12,6 @@ export default function BoletasList({ user }) {
     loadBoletas()
   }, [])
 
-  useSSE('data_changed', loadBoletas)
-
   const loadBoletas = async () => {
     let data = await getAllBoletas()
     if (user.role !== 'admin' && user.role !== 'superadmin') {
@@ -22,6 +20,8 @@ export default function BoletasList({ user }) {
     data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     setBoletas(data)
   }
+
+  useSSE('data_changed', loadBoletas)
 
   const handleDelete = async (id, e) => {
     e.stopPropagation()

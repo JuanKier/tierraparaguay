@@ -9,20 +9,15 @@ export default function Mercaderias({ user }) {
   const [nombre, setNombre] = useState('')
 
   useEffect(() => {
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
-      alert('Acceso restringido')
-      window.history.back()
-      return
-    }
     loadData()
   }, [])
-
-  useSSE('data_changed', loadData)
 
   const loadData = async () => {
     const data = await getAllMercaderias()
     setItems(data)
   }
+
+  useSSE('data_changed', loadData)
 
   const handleSubmit = async (e) => {
     e.preventDefault()

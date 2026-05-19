@@ -14,20 +14,15 @@ export default function Empresas({ user }) {
   })
 
   useEffect(() => {
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
-      alert('Acceso restringido')
-      window.history.back()
-      return
-    }
     loadEmpresas()
   }, [])
-
-  useSSE('data_changed', loadEmpresas)
 
   const loadEmpresas = async () => {
     const data = await getAllEmpresas()
     setEmpresas(data)
   }
+
+  useSSE('data_changed', loadEmpresas)
 
   const handleChange = (e) => {
     const { name, value } = e.target

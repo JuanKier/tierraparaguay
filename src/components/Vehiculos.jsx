@@ -17,15 +17,8 @@ export default function Vehiculos({ user }) {
   })
 
   useEffect(() => {
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
-      alert('Acceso restringido')
-      window.history.back()
-      return
-    }
     loadData()
   }, [])
-
-  useSSE('data_changed', loadData)
 
   const loadData = async () => {
     const v = await getAllVehiculos()
@@ -33,6 +26,8 @@ export default function Vehiculos({ user }) {
     const c = await getAllUsers()
     setConductores(c)
   }
+
+  useSSE('data_changed', loadData)
 
   const handleChange = (e) => {
     const { name, value } = e.target

@@ -10,12 +10,17 @@ export default function Remisiones({ user }) {
   const [empresas, setEmpresas] = useState([])
   const [conductores, setConductores] = useState([])
   const [vehiculos, setVehiculos] = useState([])
+  const [filters, setFilters] = useState({
+    empresa_id: '',
+    fecha_desde: '',
+    fecha_hasta: '',
+    conductor_id: '',
+    vehiculo_id: ''
+  })
 
   useEffect(() => {
     loadData()
   }, [])
-
-  useSSE('data_changed', loadData)
 
   useEffect(() => {
     applyFilters()
@@ -37,6 +42,8 @@ export default function Remisiones({ user }) {
     setConductores(usersData)
     setVehiculos(vehiculosData)
   }
+
+  useSSE('data_changed', loadData)
 
   const getConductorNombre = (id) => {
     const c = conductores.find(c => Number(c.id) === Number(id))
