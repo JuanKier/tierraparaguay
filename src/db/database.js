@@ -307,8 +307,31 @@ export function isAdminOrAbove(user) {
   return user && (user.role === 'superadmin' || user.role === 'admin');
 }
 
-const _IS_WEB = typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform?.();
-const _bindings = _IS_WEB ? api : local;
+let _impl;
+
+async function _resolve() {
+  if (_impl) return _impl;
+  if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+    _impl = local;
+    return _impl;
+  }
+  try {
+    const r = await fetch('/api/seed', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    if (r.ok) { _impl = api; return _impl; }
+  } catch {}
+  _impl = local;
+  return _impl;
+}
+
+function _lazy(obj) {
+  return new Proxy(obj, {
+    get(_, prop) {
+      return async (...args) => (await _resolve())[prop](...args);
+    }
+  });
+}
+
+const _WRAPPED = _lazy({});
 
 export const {
   clearDatabase, initDB, exportDatabase, importDatabase,
@@ -318,4 +341,4 @@ export const {
   getAllVehiculos, getVehiculoById, addVehiculo, updateVehiculo, deleteVehiculo,
   getAllMercaderias, addMercaderia, updateMercaderia, deleteMercaderia,
   getConfig, updateConfig
-} = _bindings;
+} = _WRAPPED;
