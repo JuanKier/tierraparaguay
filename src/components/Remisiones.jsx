@@ -87,12 +87,46 @@ export default function Remisiones({ user }) {
     setFilters({ empresa_id: '', fecha_desde: '', fecha_hasta: '', conductor_id: '', vehiculo_id: '' })
   }
 
+  const exportToCSV = () => {
+    const headers = ['N°', 'Fecha', 'Empresa', 'Conductor', 'Vehículo/Chapa', 'Total', 'Observación']
+    const rows = filtered.map(b => [
+      b.numero,
+      b.fecha,
+      `"${(b.empresa_nombre || '').replace(/"/g, '""')}"`,
+      `"${(b.conductor_nombre || '').replace(/"/g, '""')}"`,
+      `"${(b.vehiculo_label || b.chapa || '').replace(/"/g, '""')}"`,
+      b.resumen_total || b.total_m3 + ' m3',
+      `"${(b.observacion || '').replace(/"/g, '""')}"`
+    ].join(','))
+    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `remisiones_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const hasActiveFilters = Object.values(filters).some(v => v !== '')
 
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Remisiones</h2>
+        {(user.role === 'admin' || user.role === 'superadmin') && filtered.length > 0 && (
+          <button
+            onClick={exportToCSV}
+            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium active:scale-95 transition flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            Exportar CSV
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
