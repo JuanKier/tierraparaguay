@@ -2,8 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBoletaById, getEmpresaById } from '../db/database';
 import { LOGO_BASE64 } from '../logobase64';
-import { Share } from '@capacitor/share';
-import { Filesystem, Directory } from '@capacitor/filesystem';
 import { App } from '@capacitor/app';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -169,21 +167,20 @@ export default function BoletaDetail({ user }) {
     }
   };
 
-  const writeAndShare = async (base64, nombre) => {
-    await Filesystem.writeFile({
-      path: nombre,
-      data: base64,
-      directory: Directory.Cache
-    });
-    const fileUri = await Filesystem.getUri({
-      path: nombre,
-      directory: Directory.Cache
-    });
-    await Share.share({
-      title: `Boleta #${boleta.numero} - ${EMPRESA_NOMBRE}`,
-      files: [fileUri.uri],
-      dialogTitle: `Compartir ${nombre.endsWith('.pdf') ? 'PDF' : 'Imagen'}`
-    });
+  const shareOrDownload = async (blob, nombre, titulo) => {
+    const file = new File([blob], nombre, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: titulo });
+        return;
+      } catch {}
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const shareAsPDF = async () => {
@@ -205,10 +202,9 @@ export default function BoletaDetail({ user }) {
         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
-      const dataUri = pdf.output('datauristring');
-      const base64 = dataUri.split(',')[1];
-      await writeAndShare(base64, `Boleta-${boleta.numero}.pdf`);
-    } catch {} // Silencio: si cancela el share, no hacer nada
+      const blob = pdf.output('blob');
+      await shareOrDownload(blob, `Boleta-${boleta.numero}.pdf`, `Boleta #${boleta.numero} - ${EMPRESA_NOMBRE}`);
+    } catch {}
   };
 
   const shareAsImage = async (format = 'jpeg') => {
@@ -217,10 +213,10 @@ export default function BoletaDetail({ user }) {
     const ext = format === 'jpeg' ? 'jpg' : 'png';
     try {
       const canvas = await captureBoleta();
-      const dataUri = canvas.toDataURL(mime, 0.92);
-      const base64 = dataUri.split(',')[1];
-      await writeAndShare(base64, `Boleta-${boleta.numero}.${ext}`);
-    } catch {} // Silencio: si cancela el share, no hacer nada
+      const blob = await new Promise(r => canvas.toBlob(r, mime, 0.92));
+      if (!blob) return;
+      await shareOrDownload(blob, `Boleta-${boleta.numero}.${ext}`, `Boleta #${boleta.numero} - ${EMPRESA_NOMBRE}`);
+    } catch {}
   };
 
   const buildBoletaText = () => {
@@ -266,13 +262,14 @@ export default function BoletaDetail({ user }) {
       }
     } else {
       try {
-        await Share.share({ title: titulo, text: texto, dialogTitle: 'Compartir Boleta' });
+        await navigator.share({ title: titulo, text: texto });
+        return;
+      } catch {}
+      try {
+        await navigator.clipboard.writeText(texto);
+        alert('Texto copiado al portapapeles');
       } catch {
-        try {
-          await navigator.share({ title: titulo, text: texto });
-        } catch {
-          window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
-        }
+        window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
       }
     }
   };
