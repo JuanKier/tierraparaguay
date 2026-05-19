@@ -1,0 +1,6 @@
+{
+  "appId": "com.tierrapy.app",
+  "appName": "Tierra Paraguay E.A.S",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
