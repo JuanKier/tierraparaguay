@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { useSSE } from '../hooks/useSSE'
 import { getAllBoletas, deleteBoleta } from '../db/database'
 
 export default function BoletasList({ user }) {
@@ -11,8 +10,6 @@ export default function BoletasList({ user }) {
   useEffect(() => {
     loadBoletas()
   }, [])
-
-  useSSE('data_changed', loadBoletas)
 
   const loadBoletas = async () => {
     let data = await getAllBoletas()

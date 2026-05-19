@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useSSE } from '../hooks/useSSE'
 import { getAllEmpresas, addEmpresa, updateEmpresa, deleteEmpresa } from '../db/database'
 
 export default function Empresas({ user }) {
@@ -21,8 +20,6 @@ export default function Empresas({ user }) {
     }
     loadEmpresas()
   }, [])
-
-  useSSE('data_changed', loadEmpresas)
 
   const loadEmpresas = async () => {
     const data = await getAllEmpresas()

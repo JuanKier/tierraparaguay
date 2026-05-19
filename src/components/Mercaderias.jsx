@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useSSE } from '../hooks/useSSE'
 import { getAllMercaderias, addMercaderia, updateMercaderia, deleteMercaderia } from '../db/database'
 
 export default function Mercaderias({ user }) {
@@ -16,8 +15,6 @@ export default function Mercaderias({ user }) {
     }
     loadData()
   }, [])
-
-  useSSE('data_changed', loadData)
 
   const loadData = async () => {
     const data = await getAllMercaderias()

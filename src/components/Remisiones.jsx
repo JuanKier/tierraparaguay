@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { useSSE } from '../hooks/useSSE'
 import { getAllBoletas, getAllEmpresas, getAllUsers, getAllVehiculos } from '../db/database'
 
 export default function Remisiones({ user }) {
@@ -21,8 +20,6 @@ export default function Remisiones({ user }) {
   useEffect(() => {
     loadData()
   }, [])
-
-  useSSE('data_changed', loadData)
 
   useEffect(() => {
     applyFilters()
