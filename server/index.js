@@ -41,6 +41,11 @@ await db.batch([
     user_id INTEGER, username TEXT, action TEXT, entity_type TEXT,
     entity_id INTEGER, details TEXT, created_at TEXT
   )`,
+  `CREATE TABLE IF NOT EXISTS ubicaciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conductor_id INTEGER, conductor_nombre TEXT, lat REAL, lng REAL,
+    updated_at TEXT
+  )`,
 ]);
 
 const app = express();
@@ -292,6 +297,21 @@ app.post('/api/seed', async (req, res) => {
     await db.run('INSERT OR IGNORE INTO mercaderias (nombre) VALUES (?)', [m]);
   }
   res.json({ message: 'seeded' });
+});
+
+// ---- UBICACIONES (GPS tracking) ----
+app.post('/api/ubicacion', async (req, res) => {
+  const { conductor_id, conductor_nombre, lat, lng } = req.body;
+  await db.run('DELETE FROM ubicaciones WHERE conductor_id=?', [conductor_id]);
+  await db.run('INSERT INTO ubicaciones (conductor_id, conductor_nombre, lat, lng, updated_at) VALUES (?,?,?,?,?)',
+    [conductor_id, conductor_nombre || '', lat, lng, new Date().toISOString()]);
+  res.json({ success: true });
+});
+
+app.get('/api/ubicaciones', async (req, res) => {
+  const cincoMinAtras = new Date(Date.now() - 300000).toISOString();
+  const rows = await db.all('SELECT * FROM ubicaciones WHERE updated_at > ?', [cincoMinAtras]);
+  res.json(rows);
 });
 
 // ---- HEARTBEAT (online users) ----

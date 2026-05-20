@@ -13,8 +13,10 @@ import Mercaderias from './components/Mercaderias';
 import Settings from './components/Settings';
 import ActivityLogs from './components/ActivityLogs';
 import Estadisticas from './components/Estadisticas';
+import MapaConductores from './components/MapaConductores';
 import ErrorBoundary from './components/ErrorBoundary';
 import { initDB, getUserByUsername, isAdminOrAbove } from './db/database';
+import { useLocationTracking } from './hooks/useLocationTracking';
 import { LOGO_BASE64 } from './logobase64';
 import './index.css';
 
@@ -53,6 +55,9 @@ function App() {
       setLoading(false);
     });
   }, []);
+
+  // Tracking de ubicación para conductores
+  useLocationTracking(user)
 
   // Heartbeat para usuarios online
   useEffect(() => {
@@ -133,6 +138,7 @@ function App() {
             <Route path="settings" element={<Settings user={user} />} />
             <Route path="activity" element={<ActivityLogs user={user} />} />
             <Route path="estadisticas" element={<Estadisticas user={user} />} />
+            <Route path="mapa" element={<MapaConductores user={user} />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
