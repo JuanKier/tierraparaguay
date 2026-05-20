@@ -89,16 +89,31 @@ export default function Remisiones({ user }) {
 
   const exportToCSV = () => {
     const sep = ';'
-    const headers = ['N°', 'Fecha', 'Empresa', 'Conductor', 'Vehículo/Chapa', 'Total', 'Observación']
-    const rows = filtered.map(b => [
-      b.numero,
-      b.fecha,
-      `"${(b.empresa_nombre || '').replace(/"/g, '""')}"`,
-      `"${(b.conductor_nombre || '').replace(/"/g, '""')}"`,
-      `"${(b.vehiculo_label || b.chapa || '').replace(/"/g, '""')}"`,
-      (b.resumen_total || b.total_m3 + ' m3').replace('.', ','),
-      `"${(b.observacion || '').replace(/"/g, '""')}"`
-    ].join(sep))
+    const getTotalsByUnit = (servicios) => {
+      const totals = { m3: 0, kg: 0, m2: 0, horas: 0 }
+      ;(servicios || []).forEach(s => {
+        const u = s.unidad || 'm3'
+        const c = parseFloat(s.cantidad) || 0
+        if (totals[u] !== undefined) totals[u] += c
+      })
+      return totals
+    }
+    const headers = ['N°', 'Fecha', 'Empresa', 'Conductor', 'Vehículo/Chapa', 'Total m³', 'Total kg', 'Total m²', 'Total horas', 'Observación']
+    const rows = filtered.map(b => {
+      const totals = getTotalsByUnit(b.servicios)
+      return [
+        b.numero,
+        b.fecha,
+        `"${(b.empresa_nombre || '').replace(/"/g, '""')}"`,
+        `"${(b.conductor_nombre || '').replace(/"/g, '""')}"`,
+        `"${(b.vehiculo_label || b.chapa || '').replace(/"/g, '""')}"`,
+        String(totals.m3).replace('.', ','),
+        String(totals.kg).replace('.', ','),
+        String(totals.m2).replace('.', ','),
+        String(totals.horas).replace('.', ','),
+        `"${(b.observacion || '').replace(/"/g, '""')}"`
+      ].join(sep)
+    })
     const csv = '\uFEFF' + [headers.join(sep), ...rows].join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)

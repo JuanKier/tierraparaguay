@@ -16,6 +16,7 @@ export default function BoletaForm({ user }) {
     conductor_id: user.id,
     conductor_nombre: user.nombre,
     chapa: user.chapa || '',
+    vehiculo_label: '',
     empresa_id: '',
     empresa_nombre: '',
     direccion_entrega: '',
@@ -58,6 +59,7 @@ export default function BoletaForm({ user }) {
         conductor_id: boleta.conductor_id,
         conductor_nombre: boleta.conductor_nombre,
         chapa: boleta.chapa,
+        vehiculo_label: boleta.vehiculo_label || '',
         empresa_id: boleta.empresa_id,
         empresa_nombre: boleta.empresa_nombre,
         direccion_entrega: boleta.direccion_entrega,
@@ -191,15 +193,20 @@ export default function BoletaForm({ user }) {
             onChange={(e) => {
               const conductor = conductores.find(c => c.id.toString() === e.target.value)
               let chapa = conductor.chapa || ''
-              if (!chapa && conductor.vehiculo_id) {
+              let vehiculo_label = ''
+              if (conductor.vehiculo_id) {
                 const v = vehiculos.find(v => Number(v.id) === Number(conductor.vehiculo_id))
-                if (v) chapa = v.chapa || ''
+                if (v) {
+                  chapa = v.chapa || ''
+                  if (!chapa) vehiculo_label = `${v.tipo} ${v.marca} ${v.modelo}`
+                }
               }
               setFormData(prev => ({ 
                 ...prev, 
                 conductor_id: conductor.id,
                 conductor_nombre: conductor.nombre,
-                chapa
+                chapa,
+                vehiculo_label
               }))
             }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
@@ -213,16 +220,18 @@ export default function BoletaForm({ user }) {
 
         {/* Chapa */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 mb-2">Chapa del Vehículo</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 mb-2">Vehículo</label>
           <input
             type="text"
             name="chapa"
-            value={formData.chapa}
+            value={formData.chapa || formData.vehiculo_label || ''}
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            placeholder="Ej: ABC123"
-            required
+            placeholder="Chapa del vehículo (opcional)"
           />
+          {!formData.chapa && formData.vehiculo_label && (
+            <p className="text-xs text-gray-500 mt-1">Vehículo asignado: {formData.vehiculo_label}</p>
+          )}
         </div>
 
         {/* Empresa */}
