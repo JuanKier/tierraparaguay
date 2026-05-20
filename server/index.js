@@ -309,8 +309,8 @@ app.post('/api/ubicacion', async (req, res) => {
 });
 
 app.get('/api/ubicaciones', async (req, res) => {
-  const cincoMinAtras = new Date(Date.now() - 300000).toISOString();
-  const rows = await db.all('SELECT * FROM ubicaciones WHERE updated_at > ?', [cincoMinAtras]);
+  const diezMinAtras = new Date(Date.now() - 600000).toISOString();
+  const rows = await db.all('SELECT * FROM ubicaciones WHERE updated_at > ?', [diezMinAtras]);
   res.json(rows);
 });
 

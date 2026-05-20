@@ -39,15 +39,15 @@ export function useLocationTracking(user) {
           }
         }).catch(() => {})
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     )
 
-    // Re-enviar ubicación cada 20s por si el watchPosition no dispara seguido
+    // Re-enviar ubicación cada 60s por si el watchPosition no dispara seguido
     intervalId.current = setInterval(() => {
       if (lastPos.current) {
         sendLocation(lastPos.current.lat, lastPos.current.lng)
       }
-    }, 20000)
+    }, 60000)
 
     return () => {
       if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
