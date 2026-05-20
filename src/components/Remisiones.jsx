@@ -10,6 +10,7 @@ export default function Remisiones({ user }) {
   const [empresas, setEmpresas] = useState([])
   const [conductores, setConductores] = useState([])
   const [vehiculos, setVehiculos] = useState([])
+  const [verTodo, setVerTodo] = useState(false)
   const [filters, setFilters] = useState({
     empresa_id: '',
     fecha_desde: '',
@@ -17,6 +18,7 @@ export default function Remisiones({ user }) {
     conductor_id: '',
     vehiculo_id: ''
   })
+  const isSuper = user.role === 'superadmin'
 
   useEffect(() => {
     loadData()
@@ -24,7 +26,7 @@ export default function Remisiones({ user }) {
 
   useEffect(() => {
     applyFilters()
-  }, [filters, boletas])
+  }, [filters, boletas, verTodo])
 
   const loadData = async () => {
     let [boletasData, empresasData, usersData, vehiculosData] = await Promise.all([
@@ -33,7 +35,7 @@ export default function Remisiones({ user }) {
       getAllUsers(),
       getAllVehiculos()
     ])
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
+    if (user.role !== 'admin' && !isSuper) {
       boletasData = boletasData.filter(b => Number(b.conductor_id) === Number(user.id))
     }
     boletasData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -57,6 +59,9 @@ export default function Remisiones({ user }) {
 
   const applyFilters = () => {
     let result = [...boletas]
+    if (isSuper && !verTodo) {
+      result = result.filter(b => Number(b.conductor_id) === Number(user.id))
+    }
     if (filters.empresa_id) {
       result = result.filter(b => Number(b.empresa_id) === Number(filters.empresa_id))
     }
@@ -144,6 +149,16 @@ export default function Remisiones({ user }) {
           </button>
         )}
       </div>
+
+      {isSuper && (
+        <div className="flex items-center gap-2 mb-3">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" className="sr-only peer" checked={verTodo} onChange={() => setVerTodo(!verTodo)} />
+            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Ver todo (todas las empresas)</span>
+          </label>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4">

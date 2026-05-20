@@ -11,6 +11,8 @@ import Remisiones from './components/Remisiones';
 import Vehiculos from './components/Vehiculos';
 import Mercaderias from './components/Mercaderias';
 import Settings from './components/Settings';
+import ActivityLogs from './components/ActivityLogs';
+import Estadisticas from './components/Estadisticas';
 import ErrorBoundary from './components/ErrorBoundary';
 import { initDB, getUserByUsername } from './db/database';
 import { LOGO_BASE64 } from './logobase64';
@@ -111,6 +113,8 @@ function App() {
             <Route path="vehiculos" element={<Vehiculos user={user} />} />
             <Route path="mercaderias" element={<Mercaderias user={user} />} />
             <Route path="settings" element={<Settings user={user} />} />
+            <Route path="activity" element={<ActivityLogs user={user} />} />
+            <Route path="estadisticas" element={<Estadisticas user={user} />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

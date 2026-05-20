@@ -36,6 +36,11 @@ await db.batch([
   `CREATE TABLE IF NOT EXISTS config (
     key TEXT PRIMARY KEY, value TEXT
   )`,
+  `CREATE TABLE IF NOT EXISTS activity_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER, username TEXT, action TEXT, entity_type TEXT,
+    entity_id INTEGER, details TEXT, created_at TEXT
+  )`,
 ]);
 
 const app = express();
@@ -234,6 +239,19 @@ app.post('/api/config', async (req, res) => {
   }
   broadcast('data_changed', { store: 'config' });
   res.json({ success: true });
+});
+
+// ---- ACTIVITY LOGS ----
+app.post('/api/activity', async (req, res) => {
+  const now = new Date().toISOString();
+  await db.run('INSERT INTO activity_logs (user_id, username, action, entity_type, entity_id, details, created_at) VALUES (?,?,?,?,?,?,?)', [req.body.user_id || null, req.body.username || '', req.body.action, req.body.entity_type, req.body.entity_id || null, JSON.stringify(req.body.details || {}), now]);
+  broadcast('data_changed', { store: 'activity' });
+  res.json({ success: true });
+});
+
+app.get('/api/activity', async (req, res) => {
+  const logs = await db.all('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 200');
+  res.json(logs.map(l => ({ ...l, details: JSON.parse(l.details || '{}') })));
 });
 
 app.post('/api/import', async (req, res) => {

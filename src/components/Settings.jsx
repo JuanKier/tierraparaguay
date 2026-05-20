@@ -1,10 +1,16 @@
-import { useState } from 'react'
-import { exportDatabase, importDatabase } from '../db/database'
+import { useState, useEffect } from 'react'
+import { exportDatabase, importDatabase, getLocalActivity } from '../db/database'
 
 export default function Settings({ user }) {
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [backupLogs, setBackupLogs] = useState([])
+
+  useEffect(() => {
+    const logs = getLocalActivity()
+    setBackupLogs(logs.filter(l => l.action === 'backup' || l.entity_type === 'backup'))
+  }, [])
 
   const handleExport = async () => {
     try {
@@ -44,6 +50,10 @@ export default function Settings({ user }) {
       }
       setMessage('Base de datos exportada correctamente')
       setError('')
+      const { logActivity } = await import('../db/database')
+      logActivity('backup', 'backup', null, { filename: nombre }).catch(() => {})
+      const logs = getLocalActivity()
+      setBackupLogs(logs.filter(l => l.action === 'backup' || l.entity_type === 'backup'))
     } catch (e) {
       setError('Error al exportar: ' + e.message)
       setMessage('')
@@ -75,6 +85,20 @@ export default function Settings({ user }) {
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Configuración</h2>
 
       <div className="space-y-4">
+        {backupLogs.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Historial de Copias</h3>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {backupLogs.slice(0, 20).map((log, i) => (
+                <p key={i} className="text-xs text-gray-500 dark:text-gray-400">
+                  {new Date(log.created_at).toLocaleString('es-ES')}
+                  {log.details?.filename ? ` — ${log.details.filename}` : ''}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Base de Datos</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">

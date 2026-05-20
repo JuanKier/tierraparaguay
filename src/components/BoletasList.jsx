@@ -6,7 +6,8 @@ import { getAllBoletas, deleteBoleta } from '../db/database'
 export default function BoletasList({ user }) {
   const navigate = useNavigate()
   const [boletas, setBoletas] = useState([])
-  const [filter, setFilter] = useState('todas')
+  const [verTodo, setVerTodo] = useState(false)
+  const isSuper = user.role === 'superadmin'
 
   useEffect(() => {
     loadBoletas()
@@ -14,7 +15,7 @@ export default function BoletasList({ user }) {
 
   const loadBoletas = async () => {
     let data = await getAllBoletas()
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
+    if (user.role !== 'admin' && !isSuper) {
       data = data.filter(b => Number(b.conductor_id) === Number(user.id))
     }
     data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -48,7 +49,23 @@ export default function BoletasList({ user }) {
 
       {/* Búsqueda o filtros adicionales pueden ir aquí */}
 
-       {boletas.length === 0 ? (
+       {/* Superadmin: toggle ver todo */}
+      {isSuper && boletas.length > 0 && (
+        <div className="flex items-center gap-2 mb-3">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={verTodo}
+              onChange={() => setVerTodo(!verTodo)}
+            />
+            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Ver todo (todas las empresas)</span>
+          </label>
+        </div>
+      )}
+
+      {boletas.length === 0 ? (
          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center">
             <div className="text-4xl mb-3 font-bold text-primary-600">B</div>
            <p className="text-gray-500 dark:text-gray-400 mb-4">No hay boletas</p>
@@ -60,8 +77,8 @@ export default function BoletasList({ user }) {
            </button>
          </div>
        ) : (
-         <div className="space-y-3">
-           {boletas.map(boleta => (
+       <div className="space-y-3">
+            {boletas.filter(b => verTodo || !isSuper || Number(b.conductor_id) === Number(user.id)).map(boleta => (
             <div
               key={boleta.id}
               onClick={() => navigate(`/boleta/${boleta.id}`)}

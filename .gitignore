@@ -6,3 +6,6 @@ screenshots/
 .tierrapy/
 server/data/
 server/node_modules/
+auth
+auth-wal
+MANUAL_DE_USUARIO*

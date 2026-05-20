@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { 
-  getBoletaById, addBoleta, updateBoleta, 
+  getBoletaById, addBoleta, updateBoleta, addEmpresa,
   getAllUsers, getAllEmpresas, getAllVehiculos, getAllMercaderias 
 } from '../db/database'
 import { getCurrentUser } from '../services/auth'
@@ -33,6 +33,8 @@ export default function BoletaForm({ user }) {
   const [vehiculos, setVehiculos] = useState([])
   const [empresas, setEmpresas] = useState([])
   const [mercaderias, setMercaderias] = useState([])
+  const [showNewEmpresa, setShowNewEmpresa] = useState(false)
+  const [newEmpresa, setNewEmpresa] = useState({ nombre: '', direccion: '', ruc: '', telefono: '' })
 
   useEffect(() => {
     loadData()
@@ -236,7 +238,73 @@ export default function BoletaForm({ user }) {
 
         {/* Empresa */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 dark:text-gray-300 mb-2">Empresa</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Empresa</label>
+            {(user.role === 'admin' || user.role === 'superadmin') && (
+              <button
+                type="button"
+                onClick={() => setShowNewEmpresa(!showNewEmpresa)}
+                className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+              >
+                {showNewEmpresa ? 'Cancelar' : '+ Nueva empresa'}
+              </button>
+            )}
+          </div>
+          {showNewEmpresa && (
+            <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
+              <input
+                type="text"
+                placeholder="Nombre"
+                value={newEmpresa.nombre}
+                onChange={(ev) => setNewEmpresa(prev => ({ ...prev, nombre: ev.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-lg text-sm"
+              />
+              <input
+                type="text"
+                placeholder="Dirección"
+                value={newEmpresa.direccion}
+                onChange={(ev) => setNewEmpresa(prev => ({ ...prev, direccion: ev.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-lg text-sm"
+              />
+              <input
+                type="text"
+                placeholder="RUC"
+                value={newEmpresa.ruc}
+                onChange={(ev) => setNewEmpresa(prev => ({ ...prev, ruc: ev.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-lg text-sm"
+              />
+              <input
+                type="text"
+                placeholder="Teléfono"
+                value={newEmpresa.telefono}
+                onChange={(ev) => setNewEmpresa(prev => ({ ...prev, telefono: ev.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-lg text-sm"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!newEmpresa.nombre.trim()) return alert('Ingrese un nombre')
+                  const created = await addEmpresa(newEmpresa)
+                  if (created) {
+                    const updated = await getAllEmpresas()
+                    setEmpresas(updated)
+                    setFormData(prev => ({
+                      ...prev,
+                      empresa_id: created.id,
+                      empresa_nombre: created.nombre,
+                      direccion_entrega: created.direccion || '',
+                      telefono_empresa: created.telefono || ''
+                    }))
+                    setShowNewEmpresa(false)
+                    setNewEmpresa({ nombre: '', direccion: '', ruc: '', telefono: '' })
+                  }
+                }}
+                className="w-full bg-primary-600 text-white py-2 rounded-lg text-sm font-medium"
+              >
+                Crear Empresa
+              </button>
+            </div>
+          )}
           <select
             value={formData.empresa_id}
             onChange={handleEmpresaSelect}
