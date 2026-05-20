@@ -99,7 +99,7 @@ export default function Vehiculos({ user }) {
             <input type="text" name="marca" value={formData.marca} onChange={handleChange} placeholder="Marca" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
             <input type="text" name="modelo" value={formData.modelo} onChange={handleChange} placeholder="Modelo" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
             <input type="text" name="color" value={formData.color} onChange={handleChange} placeholder="Color" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
-            <input type="text" name="chapa" value={formData.chapa} onChange={handleChange} placeholder="Chapa" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
+            <input type="text" name="chapa" value={formData.chapa} onChange={handleChange} placeholder="Chapa (opcional)" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
             <select name="conductor_id" value={formData.conductor_id} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
               <option value="">Sin conductor asignado</option>
               {conductores.map(c => (
@@ -124,7 +124,7 @@ export default function Vehiculos({ user }) {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="font-medium text-gray-900 dark:text-white text-sm">{v.tipo} - {v.marca} {v.modelo}</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Chapa: {v.chapa} | Color: {v.color}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{v.chapa ? `Chapa: ${v.chapa}` : `${v.tipo} ${v.marca} ${v.modelo}`} | Color: {v.color}</p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">Conductor: {getConductorNombre(v.conductor_id)}</p>
               </div>
               <div className="flex gap-1">

@@ -62,19 +62,36 @@ app.get('/api/users/:username', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
   const r = await db.run('INSERT INTO users (nombre, nombre_completo, username, password, vehiculo_id, chapa, telefono, role, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [req.body.nombre, req.body.nombre_completo, req.body.username, req.body.password, req.body.vehiculo_id || null, req.body.chapa || '', req.body.telefono || '', req.body.role || 'user', req.body.active !== false ? 1 : 0]);
+  if (req.body.vehiculo_id) {
+    await db.run('UPDATE vehiculos SET conductor_id=? WHERE id=?', [r.lastInsertRowid, req.body.vehiculo_id]);
+  }
   broadcast('data_changed', { store: 'users' });
+  broadcast('data_changed', { store: 'vehiculos' });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 
 app.put('/api/users/:id', async (req, res) => {
+  const oldUser = await db.get('SELECT * FROM users WHERE id=?', [req.params.id]);
+  if (oldUser && oldUser.vehiculo_id && Number(oldUser.vehiculo_id) !== Number(req.body.vehiculo_id)) {
+    await db.run('UPDATE vehiculos SET conductor_id=NULL WHERE id=?', [oldUser.vehiculo_id]);
+  }
   await db.run('UPDATE users SET nombre=?, nombre_completo=?, username=?, password=?, vehiculo_id=?, chapa=?, telefono=?, role=?, active=? WHERE id=?', [req.body.nombre, req.body.nombre_completo, req.body.username, req.body.password, req.body.vehiculo_id || null, req.body.chapa || '', req.body.telefono || '', req.body.role || 'user', req.body.active !== false ? 1 : 0, req.params.id]);
+  if (req.body.vehiculo_id) {
+    await db.run('UPDATE vehiculos SET conductor_id=? WHERE id=?', [req.params.id, req.body.vehiculo_id]);
+  }
   broadcast('data_changed', { store: 'users' });
+  broadcast('data_changed', { store: 'vehiculos' });
   res.json({ success: true });
 });
 
 app.delete('/api/users/:id', async (req, res) => {
+  const oldUser = await db.get('SELECT * FROM users WHERE id=?', [req.params.id]);
   await db.run('DELETE FROM users WHERE id=?', [req.params.id]);
+  if (oldUser && oldUser.vehiculo_id) {
+    await db.run('UPDATE vehiculos SET conductor_id=NULL WHERE id=?', [oldUser.vehiculo_id]);
+  }
   broadcast('data_changed', { store: 'users' });
+  broadcast('data_changed', { store: 'vehiculos' });
   res.json({ success: true });
 });
 
@@ -114,19 +131,36 @@ app.get('/api/vehiculos/:id', async (req, res) => {
 
 app.post('/api/vehiculos', async (req, res) => {
   const r = await db.run('INSERT INTO vehiculos (tipo, marca, modelo, color, chapa, conductor_id) VALUES (?,?,?,?,?,?)', [req.body.tipo, req.body.marca, req.body.modelo, req.body.color, req.body.chapa, req.body.conductor_id || null]);
+  if (req.body.conductor_id) {
+    await db.run('UPDATE users SET vehiculo_id=? WHERE id=?', [r.lastInsertRowid, req.body.conductor_id]);
+  }
   broadcast('data_changed', { store: 'vehiculos' });
+  broadcast('data_changed', { store: 'users' });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 
 app.put('/api/vehiculos/:id', async (req, res) => {
+  const oldVeh = await db.get('SELECT * FROM vehiculos WHERE id=?', [req.params.id]);
+  if (oldVeh && oldVeh.conductor_id && Number(oldVeh.conductor_id) !== Number(req.body.conductor_id)) {
+    await db.run('UPDATE users SET vehiculo_id=NULL WHERE id=?', [oldVeh.conductor_id]);
+  }
   await db.run('UPDATE vehiculos SET tipo=?, marca=?, modelo=?, color=?, chapa=?, conductor_id=? WHERE id=?', [req.body.tipo, req.body.marca, req.body.modelo, req.body.color, req.body.chapa, req.body.conductor_id || null, req.params.id]);
+  if (req.body.conductor_id) {
+    await db.run('UPDATE users SET vehiculo_id=? WHERE id=?', [req.params.id, req.body.conductor_id]);
+  }
   broadcast('data_changed', { store: 'vehiculos' });
+  broadcast('data_changed', { store: 'users' });
   res.json({ success: true });
 });
 
 app.delete('/api/vehiculos/:id', async (req, res) => {
+  const oldVeh = await db.get('SELECT * FROM vehiculos WHERE id=?', [req.params.id]);
   await db.run('DELETE FROM vehiculos WHERE id=?', [req.params.id]);
+  if (oldVeh && oldVeh.conductor_id) {
+    await db.run('UPDATE users SET vehiculo_id=NULL WHERE id=?', [oldVeh.conductor_id]);
+  }
   broadcast('data_changed', { store: 'vehiculos' });
+  broadcast('data_changed', { store: 'users' });
   res.json({ success: true });
 });
 

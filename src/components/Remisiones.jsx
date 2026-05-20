@@ -52,7 +52,7 @@ export default function Remisiones({ user }) {
 
   const getVehiculoChapa = (id) => {
     const v = vehiculos.find(v => Number(v.id) === Number(id))
-    return v ? v.chapa : ''
+    return v ? v.chapa || `${v.tipo} ${v.marca} ${v.modelo}` : ''
   }
 
   const applyFilters = () => {
@@ -88,6 +88,7 @@ export default function Remisiones({ user }) {
   }
 
   const exportToCSV = () => {
+    const sep = ';'
     const headers = ['N°', 'Fecha', 'Empresa', 'Conductor', 'Vehículo/Chapa', 'Total', 'Observación']
     const rows = filtered.map(b => [
       b.numero,
@@ -95,10 +96,10 @@ export default function Remisiones({ user }) {
       `"${(b.empresa_nombre || '').replace(/"/g, '""')}"`,
       `"${(b.conductor_nombre || '').replace(/"/g, '""')}"`,
       `"${(b.vehiculo_label || b.chapa || '').replace(/"/g, '""')}"`,
-      b.resumen_total || b.total_m3 + ' m3',
+      (b.resumen_total || b.total_m3 + ' m3').replace('.', ','),
       `"${(b.observacion || '').replace(/"/g, '""')}"`
-    ].join(','))
-    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n')
+    ].join(sep))
+    const csv = '\uFEFF' + [headers.join(sep), ...rows].join('\r\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -185,7 +186,7 @@ export default function Remisiones({ user }) {
             >
               <option value="">Todos</option>
               {vehiculos.map(v => (
-                <option key={v.id} value={v.id}>{v.tipo} - {v.chapa} ({v.marca})</option>
+                <option key={v.id} value={v.id}>{v.tipo} - {v.chapa || `${v.marca} ${v.modelo}`}</option>
               ))}
             </select>
           </div>

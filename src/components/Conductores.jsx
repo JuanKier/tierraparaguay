@@ -33,7 +33,8 @@ export default function Conductores({ user }) {
 
   const getVehiculoInfo = (id) => {
     const v = vehiculos.find(v => Number(v.id) === Number(id))
-    return v ? `${v.tipo} - ${v.chapa}` : null
+    if (!v) return null
+    return `${v.tipo} - ${v.chapa || `${v.marca} ${v.modelo}`}`
   }
 
   const handleChange = (e) => {
@@ -206,7 +207,7 @@ export default function Conductores({ user }) {
             >
               <option value="">Sin vehículo asignado</option>
               {vehiculos.map(v => (
-                <option key={v.id} value={v.id}>{v.tipo} - {v.chapa} ({v.marca} {v.modelo})</option>
+                <option key={v.id} value={v.id}>{v.tipo} - {v.chapa || `${v.marca} ${v.modelo}`}</option>
               ))}
             </select>
             <select
