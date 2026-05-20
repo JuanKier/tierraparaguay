@@ -14,7 +14,7 @@ import Settings from './components/Settings';
 import ActivityLogs from './components/ActivityLogs';
 import Estadisticas from './components/Estadisticas';
 import ErrorBoundary from './components/ErrorBoundary';
-import { initDB, getUserByUsername } from './db/database';
+import { initDB, getUserByUsername, isAdminOrAbove } from './db/database';
 import { LOGO_BASE64 } from './logobase64';
 import './index.css';
 
@@ -52,6 +52,24 @@ function App() {
       }
       setLoading(false);
     });
+  }, []);
+
+  // Heartbeat para usuarios online
+  useEffect(() => {
+    const API = import.meta.env.VITE_API_URL || '/api';
+    const interval = setInterval(() => {
+      const saved = localStorage.getItem('tierrapy_user');
+      if (saved) {
+        try {
+          const u = JSON.parse(saved);
+          fetch(API + '/heartbeat', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: u.id, username: u.username, nombre: u.nombre })
+          }).catch(() => {});
+        } catch {}
+      }
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const toggleDark = () => {
@@ -105,7 +123,7 @@ function App() {
           <Route path="/" element={
             user ? <Dashboard user={user} onLogout={handleLogout} toggleDark={toggleDark} /> : <Navigate to="/login" replace />
           }>
-            <Route index element={<BoletasList user={user} />} />
+            <Route index element={isAdminOrAbove(user) ? <Estadisticas user={user} /> : <BoletasList user={user} />} />
             <Route path="boleta/:id" element={<BoletaDetail user={user} />} />
             <Route path="conductores" element={<Conductores user={user} />} />
             <Route path="empresas" element={<Empresas user={user} />} />

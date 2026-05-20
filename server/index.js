@@ -294,6 +294,27 @@ app.post('/api/seed', async (req, res) => {
   res.json({ message: 'seeded' });
 });
 
+// ---- HEARTBEAT (online users) ----
+const onlineUsers = new Map();
+
+app.post('/api/heartbeat', (req, res) => {
+  const { user_id, username, nombre } = req.body;
+  if (user_id && username) {
+    onlineUsers.set(Number(user_id), { user_id, username, nombre: nombre || username, last_seen: Date.now() });
+  }
+  res.json({ success: true });
+});
+
+app.get('/api/online', (req, res) => {
+  const now = Date.now();
+  const active = [];
+  onlineUsers.forEach((u) => {
+    if (now - u.last_seen < 120000) active.push(u);
+    else onlineUsers.delete(u.user_id);
+  });
+  res.json(active);
+});
+
 // ---- SSE ----
 app.get('/api/events', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });

@@ -5,7 +5,9 @@ import { getAllBoletas, getAllEmpresas } from '../db/database'
 export default function Estadisticas({ user }) {
   const [boletas, setBoletas] = useState([])
   const [empresas, setEmpresas] = useState([])
-  const [periodo, setPeriodo] = useState('all')
+  const [periodo, setPeriodo] = useState('today')
+  const [dateDesde, setDateDesde] = useState('')
+  const [dateHasta, setDateHasta] = useState('')
 
   useEffect(() => { loadData() }, [])
 
@@ -17,19 +19,38 @@ export default function Estadisticas({ user }) {
 
   useSSE('data_changed', loadData)
 
+  const getWeekRange = (date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    const monday = new Date(d.setDate(diff))
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    return { from: monday.toISOString().slice(0, 10), to: sunday.toISOString().slice(0, 10) }
+  }
+
   const filtered = boletas.filter(b => {
     if (periodo === 'all') return true
-    const fecha = new Date(b.fecha)
-    const now = new Date()
-    if (periodo === 'month') {
-      return fecha.getMonth() === now.getMonth() && fecha.getFullYear() === now.getFullYear()
+    if (periodo === 'range') {
+      if (!dateDesde && !dateHasta) return true
+      if (dateDesde && b.fecha < dateDesde) return false
+      if (dateHasta && b.fecha > dateHasta) return false
+      return true
     }
-    if (periodo === 'year') return fecha.getFullYear() === now.getFullYear()
+    const now = new Date()
+    if (periodo === 'today') return b.fecha === now.toISOString().slice(0, 10)
+    if (periodo === 'week') {
+      const { from, to } = getWeekRange(new Date())
+      return b.fecha >= from && b.fecha <= to
+    }
+    if (periodo === 'month') {
+      return b.fecha.slice(0, 7) === now.toISOString().slice(0, 7)
+    }
+    if (periodo === 'year') return b.fecha.slice(0, 4) === String(now.getFullYear())
     return true
   })
 
   const totalBoletas = filtered.length
-  const totalM3 = filtered.reduce((s, b) => s + (parseFloat(b.total_m3) || 0), 0)
 
   const resumenByUnit = {}
   filtered.forEach(b => {
@@ -54,7 +75,7 @@ export default function Estadisticas({ user }) {
   const sortedEmpresas = Object.entries(byEmpresa).sort((a, b) => b[1].count - a[1].count)
 
   const byMonth = {}
-  filtered.forEach(b => {
+  boletas.forEach(b => {
     const m = b.fecha ? b.fecha.slice(0, 7) : 'sin-fecha'
     if (!byMonth[m]) byMonth[m] = 0
     byMonth[m]++
@@ -63,17 +84,30 @@ export default function Estadisticas({ user }) {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Estadísticas</h2>
-        <select
-          value={periodo}
-          onChange={(e) => setPeriodo(e.target.value)}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
-        >
-          <option value="all">Todo el historial</option>
-          <option value="year">Este año</option>
-          <option value="month">Este mes</option>
-        </select>
+        <div className="flex gap-2 flex-wrap">
+          <select
+            value={periodo}
+            onChange={(e) => setPeriodo(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
+          >
+            <option value="today">Hoy</option>
+            <option value="week">Esta semana</option>
+            <option value="month">Este mes</option>
+            <option value="year">Este año</option>
+            <option value="all">Todo el historial</option>
+            <option value="range">Rango de fechas</option>
+          </select>
+          {periodo === 'range' && (
+            <>
+              <input type="date" value={dateDesde} onChange={(e) => setDateDesde(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm" />
+              <input type="date" value={dateHasta} onChange={(e) => setDateHasta(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm" />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Cards */}

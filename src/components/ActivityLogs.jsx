@@ -2,15 +2,30 @@ import { useState, useEffect } from 'react'
 import { useSSE } from '../hooks/useSSE'
 import { getActivity } from '../db/database'
 
+const API = import.meta.env.VITE_API_URL || '/api'
+
 export default function ActivityLogs({ user }) {
   const [logs, setLogs] = useState([])
+  const [onlineUsers, setOnlineUsers] = useState([])
   const [filter, setFilter] = useState({ action: '', entity: '' })
 
-  useEffect(() => { loadLogs() }, [])
+  useEffect(() => { loadLogs(); fetchOnline() }, [])
+
+  useEffect(() => {
+    const interval = setInterval(fetchOnline, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const loadLogs = async () => {
     const data = await getActivity()
     setLogs(data || [])
+  }
+
+  const fetchOnline = async () => {
+    try {
+      const r = await fetch(API + '/online')
+      if (r.ok) setOnlineUsers(await r.json())
+    } catch {}
   }
 
   useSSE('data_changed', loadLogs)
@@ -28,6 +43,26 @@ export default function ActivityLogs({ user }) {
     <div className="animate-fade-in">
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Registro de Actividad</h2>
 
+      {/* Usuarios en línea */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+          Usuarios en línea {onlineUsers.length > 0 && <span className="text-green-500 font-bold">({onlineUsers.length})</span>}
+        </h3>
+        {onlineUsers.length === 0 ? (
+          <p className="text-xs text-gray-400">No hay usuarios conectados</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {onlineUsers.map(u => (
+              <span key={u.user_id} className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-full text-xs font-medium">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                {u.nombre || u.username}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Filtros */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4">
         <div className="flex gap-3 flex-wrap">
           <select
