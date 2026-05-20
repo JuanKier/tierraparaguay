@@ -196,7 +196,8 @@ export default function Conductores({ user }) {
               name="telefono"
               value={formData.telefono}
               onChange={handleChange}
-              placeholder="Teléfono"
+              onFocus={(e) => { if (!e.target.value) setFormData(prev => ({ ...prev, telefono: '+595' })) }}
+              placeholder="Teléfono (+595...)"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
             <select
@@ -218,6 +219,7 @@ export default function Conductores({ user }) {
             >
               <option value="user">Usuario</option>
               <option value="admin">Administrador</option>
+              {user.role === 'superadmin' && <option value="superadmin">Super Admin</option>}
             </select>
             <label className="flex items-center gap-2 text-sm">
               <input

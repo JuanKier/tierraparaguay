@@ -116,7 +116,8 @@ export default function Empresas({ user }) {
               name="telefono"
               value={formData.telefono}
               onChange={handleChange}
-              placeholder="Teléfono (para WhatsApp)"
+              onFocus={(e) => { if (!e.target.value) setFormData(prev => ({ ...prev, telefono: '+595' })) }}
+              placeholder="Teléfono (+595...)"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
             <div className="flex gap-2">

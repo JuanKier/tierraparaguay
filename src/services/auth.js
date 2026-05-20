@@ -2,10 +2,13 @@ import { getUserByUsername } from '../db/database'
 
 export async function login(username, password) {
   const user = await getUserByUsername(username)
-  if (user && user.password === password && user.active) {
-    return { success: true, user }
+  if (!user || user.password !== password) {
+    return { success: false, message: 'Usuario o contraseña incorrectos' }
   }
-  return { success: false, message: 'Usuario o contraseña incorrectos' }
+  if (!user.active) {
+    return { success: false, message: 'Su cuenta de usuario no está habilitada. Por favor, comuníquese con administración.' }
+  }
+  return { success: true, user }
 }
 
 export function logout() {

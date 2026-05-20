@@ -59,12 +59,15 @@ function App() {
 
   const handleLogin = async (username, password) => {
     const foundUser = await getUserByUsername(username);
-    if (foundUser && foundUser.password === password && foundUser.active) {
-      setUser(foundUser);
-      localStorage.setItem('tierrapy_user', JSON.stringify(foundUser));
-      return { success: true };
+    if (!foundUser || foundUser.password !== password) {
+      return { success: false, message: 'Usuario o contraseña incorrectos' };
     }
-    return { success: false, message: 'Usuario o contrasena incorrectos' };
+    if (!foundUser.active) {
+      return { success: false, message: 'Su cuenta de usuario no está habilitada. Por favor, comuníquese con administración.' };
+    }
+    setUser(foundUser);
+    localStorage.setItem('tierrapy_user', JSON.stringify(foundUser));
+    return { success: true };
   };
 
   const handleLogout = () => {
