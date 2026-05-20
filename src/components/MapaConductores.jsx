@@ -21,7 +21,7 @@ export default function MapaConductores({ user }) {
   useEffect(() => { loadUbicaciones() }, [])
 
   useEffect(() => {
-    const interval = setInterval(loadUbicaciones, 60000)
+    const interval = setInterval(loadUbicaciones, 300000)
     return () => clearInterval(interval)
   }, [])
 
@@ -90,7 +90,7 @@ export default function MapaConductores({ user }) {
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {ubicaciones.length} conductor(es) activo(s) — ubicaciones actualizadas cada 60s
+          {ubicaciones.length} conductor(es) activo(s) — ubicaciones actualizadas cada 5 min
         </p>
       </div>
 
