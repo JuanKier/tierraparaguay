@@ -5,6 +5,7 @@ import {
   getAllUsers, getAllEmpresas, getAllVehiculos, getAllMercaderias 
 } from '../db/database'
 import { getCurrentUser } from '../services/auth'
+import { localDateString } from '../utils/format'
 
 export default function BoletaForm({ user }) {
   const navigate = useNavigate()
@@ -12,7 +13,7 @@ export default function BoletaForm({ user }) {
   const isEditing = !!id
 
   const [formData, setFormData] = useState({
-    fecha: new Date().toISOString().split('T')[0],
+      fecha: localDateString(), 
     conductor_id: user.id,
     conductor_nombre: user.nombre,
     chapa: user.chapa || '',
@@ -26,7 +27,7 @@ export default function BoletaForm({ user }) {
   })
 
   const [servicios, setServicios] = useState([
-    { fecha: new Date().toISOString().split('T')[0], tipo_mercaderia: '', cantidad: '', unidad: 'm3', descripcion: '' }
+    { fecha: localDateString(), tipo_mercaderia: '', cantidad: '', unidad: 'm3', descripcion: '' }
   ])
 
   const [conductores, setConductores] = useState([])
@@ -85,7 +86,7 @@ export default function BoletaForm({ user }) {
 
   const addServicio = () => {
     setServicios([...servicios, { 
-      fecha: new Date().toISOString().split('T')[0], 
+    fecha: localDateString(),
       tipo_mercaderia: '', 
       cantidad: '', 
       unidad: 'm3', 
@@ -147,7 +148,7 @@ export default function BoletaForm({ user }) {
       total_m3: Object.values(totalPorUnidad).reduce((a, b) => a + b, 0),
       resumen_total,
       vehiculo_label,
-      fecha: new Date().toISOString().split('T')[0]
+      fecha: localDateString()
     }
 
     if (isEditing) {
@@ -421,6 +422,7 @@ export default function BoletaForm({ user }) {
                     <option value="m2">m²</option>
                     <option value="kg">Kg</option>
                     <option value="horas">Horas</option>
+                    <option value="carga">Carga</option>
                   </select>
                 </div>
               </div>

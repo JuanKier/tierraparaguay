@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { exportDatabase, importDatabase, getLocalActivity } from '../db/database'
+import { localDateString } from '../utils/format'
 
 export default function Settings({ user }) {
   const [importing, setImporting] = useState(false)
@@ -16,7 +17,7 @@ export default function Settings({ user }) {
     try {
       const data = await exportDatabase()
       const json = JSON.stringify(data, null, 2)
-      const nombre = `tierrapy-backup-${new Date().toISOString().split('T')[0]}.json`
+      const nombre = `tierrapy-backup-${localDateString()}.json`
       let shared = false
       try {
         const { Filesystem, Directory } = await import('@capacitor/filesystem')

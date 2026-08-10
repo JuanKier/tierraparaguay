@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSSE } from '../hooks/useSSE'
 import { getAllBoletas, getAllEmpresas } from '../db/database'
+import { localDateString } from '../utils/format'
 
 export default function Estadisticas({ user }) {
   const [boletas, setBoletas] = useState([])
@@ -26,7 +27,7 @@ export default function Estadisticas({ user }) {
     const monday = new Date(d.setDate(diff))
     const sunday = new Date(monday)
     sunday.setDate(monday.getDate() + 6)
-    return { from: monday.toISOString().slice(0, 10), to: sunday.toISOString().slice(0, 10) }
+    return { from: localDateString(monday), to: localDateString(sunday) }
   }
 
   const filtered = boletas.filter(b => {
@@ -38,13 +39,13 @@ export default function Estadisticas({ user }) {
       return true
     }
     const now = new Date()
-    if (periodo === 'today') return b.fecha === now.toISOString().slice(0, 10)
+    if (periodo === 'today') return b.fecha === localDateString(now)
     if (periodo === 'week') {
       const { from, to } = getWeekRange(new Date())
       return b.fecha >= from && b.fecha <= to
     }
     if (periodo === 'month') {
-      return b.fecha.slice(0, 7) === now.toISOString().slice(0, 7)
+      return b.fecha.slice(0, 7) === localDateString(now).slice(0, 7)
     }
     if (periodo === 'year') return b.fecha.slice(0, 4) === String(now.getFullYear())
     return true
@@ -63,7 +64,7 @@ export default function Estadisticas({ user }) {
     })
   })
 
-  const unitLabels = { m3: 'm³ total', kg: 'Kg total', m2: 'm² total', horas: 'Horas total' }
+  const unitLabels = { m3: 'm³ total', kg: 'Kg total', m2: 'm² total', horas: 'Horas total', carga: 'Cargas total' }
 
   const byEmpresa = {}
   filtered.forEach(b => {

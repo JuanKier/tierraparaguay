@@ -6,6 +6,13 @@ import db from './db.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function localDateString(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 await db.batch([
   `CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -209,10 +216,11 @@ app.get('/api/boletas/:id', async (req, res) => {
 
 app.post('/api/boletas', async (req, res) => {
   const now = new Date().toISOString();
+  const fecha = req.body.fecha || localDateString();
   const counter = await db.get("SELECT value FROM config WHERE key='boleta_counter'", []);
   const num = (parseInt(counter?.value || '0') + 1);
   await db.run("INSERT INTO config (key, value) VALUES ('boleta_counter', ?) ON CONFLICT(key) DO UPDATE SET value=?", [String(num), String(num)]);
-  const r = await db.run(`INSERT INTO boletas (numero, fecha, conductor_id, conductor_nombre, chapa, vehiculo_label, empresa_id, empresa_nombre, direccion_entrega, telefono_empresa, factura_numero, observacion, total_m3, resumen_total, servicios, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [String(num).padStart(3, '0'), req.body.fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, now]);
+  const r = await db.run(`INSERT INTO boletas (numero, fecha, conductor_id, conductor_nombre, chapa, vehiculo_label, empresa_id, empresa_nombre, direccion_entrega, telefono_empresa, factura_numero, observacion, total_m3, resumen_total, servicios, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [String(num).padStart(3, '0'), fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, now]);
   broadcast('data_changed', { store: 'boletas' });
   res.json({ ...req.body, id: r.lastInsertRowid, numero: String(num).padStart(3, '0'), created_at: now, updated_at: now, servicios: req.body.servicios || [] });
 });

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useSSE } from '../hooks/useSSE'
 import { getAllBoletas, getAllEmpresas, getAllUsers, getAllVehiculos } from '../db/database'
+import { localDateString } from '../utils/format'
 
 export default function Remisiones({ user }) {
   const navigate = useNavigate()
@@ -124,7 +125,7 @@ export default function Remisiones({ user }) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `remisiones_${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `remisiones_${localDateString()}.csv`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
