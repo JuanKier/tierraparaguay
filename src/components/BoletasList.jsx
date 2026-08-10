@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useSSE } from '../hooks/useSSE'
 import { getAllBoletas, deleteBoleta } from '../db/database'
+import { formatShortDate } from '../utils/format'
 
 export default function BoletasList({ user }) {
   const navigate = useNavigate()
@@ -88,7 +89,7 @@ export default function BoletasList({ user }) {
                 <span className="font-bold text-primary-600 text-sm">#{boleta.numero}</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(boleta.fecha).toLocaleDateString('es-ES')}
+                    {formatShortDate(boleta.fecha)}
                   </span>
                   {(user.role === 'admin' || user.role === 'superadmin') && (
                     <button

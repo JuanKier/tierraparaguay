@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useSSE } from '../hooks/useSSE'
 import { getAllBoletas, getAllEmpresas, getAllUsers, getAllVehiculos } from '../db/database'
-import { localDateString } from '../utils/format'
+import { localDateString, formatShortDate } from '../utils/format'
 
 export default function Remisiones({ user }) {
   const navigate = useNavigate()
@@ -252,7 +252,7 @@ export default function Remisiones({ user }) {
               <div className="flex items-center justify-between mb-1">
                 <span className="font-bold text-primary-600 text-sm">#{boleta.numero}</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {new Date(boleta.fecha).toLocaleDateString('es-ES')}
+                  {formatShortDate(boleta.fecha)}
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs mb-2">

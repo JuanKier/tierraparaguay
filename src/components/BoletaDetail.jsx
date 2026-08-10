@@ -5,6 +5,7 @@ import { LOGO_BASE64 } from '../logobase64';
 import { App } from '@capacitor/app';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { formatShortDate } from '../utils/format';
 
 const EMPRESA_NOMBRE = 'Tierra Paraguay E.A.S';
 const EMPRESA_RUC = '80158613-5';
@@ -36,7 +37,7 @@ export default function BoletaDetail({ user }) {
 
     const serviciosHTML = boleta.servicios.map(s => `
       <tr>
-        <td style="border:1px solid #ddd;padding:8px;text-align:center">${new Date(s.fecha).toLocaleDateString('es-ES')}</td>
+        <td style="border:1px solid #ddd;padding:8px;text-align:center">${formatShortDate(s.fecha)}</td>
         <td style="border:1px solid #ddd;padding:8px">${s.tipo_mercaderia.charAt(0).toUpperCase() + s.tipo_mercaderia.slice(1)}</td>
         <td style="border:1px solid #ddd;padding:8px;text-align:center">${s.cantidad} ${s.unidad}</td>
         <td style="border:1px solid #ddd;padding:8px">${s.descripcion || '-'}</td>
@@ -86,7 +87,7 @@ export default function BoletaDetail({ user }) {
           </div>
           <div style="text-align:right">
             <h2 style="color:#ea580c;margin:0">#${boleta.numero}</h2>
-            <p style="color:#666;font-size:13px">${new Date(boleta.fecha).toLocaleDateString('es-ES')}</p>
+            <p style="color:#666;font-size:13px">${formatShortDate(boleta.fecha)}</p>
           </div>
         </div>
 
@@ -222,14 +223,14 @@ export default function BoletaDetail({ user }) {
   const buildBoletaText = () => {
     const titulo = `${EMPRESA_NOMBRE} - Boleta #${boleta.numero}`;
     return `*${titulo}*\n\n` +
-      `Fecha: ${new Date(boleta.fecha).toLocaleDateString('es-ES')}\n` +
+      `Fecha: ${formatShortDate(boleta.fecha)}\n` +
       `Empresa: ${boleta.empresa_nombre}\n` +
       `Direccion: ${boleta.direccion_entrega}\n` +
       `${boleta.vehiculo_label ? `Vehículo: ${boleta.vehiculo_label}` : `Chapa: ${boleta.chapa}`}\n` +
       `Conductor: ${boleta.conductor_nombre}\n\n` +
       `*Servicios:*\n` +
       boleta.servicios.map((s, i) =>
-        `${i+1}. ${s.tipo_mercaderia} - ${s.cantidad} ${s.unidad} (${new Date(s.fecha).toLocaleDateString('es-ES')})`
+        `${i+1}. ${s.tipo_mercaderia} - ${s.cantidad} ${s.unidad} (${formatShortDate(s.fecha)})`
       ).join('\n') + '\n\n' +
       `Total: ${boleta.resumen_total || boleta.total_m3 + ' m3'}\n` +
       (boleta.factura_numero ? `Factura: ${boleta.factura_numero}\n` : '') +
@@ -313,7 +314,7 @@ export default function BoletaDetail({ user }) {
           </div>
           <div className="text-right">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">#{boleta.numero}</h2>
-            <p className="text-xs text-gray-600 dark:text-gray-400">{new Date(boleta.fecha).toLocaleDateString('es-ES')}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{formatShortDate(boleta.fecha)}</p>
           </div>
         </div>
 
@@ -341,7 +342,7 @@ export default function BoletaDetail({ user }) {
           </div>
           {boleta.servicios.map((s, i) => (
             <div key={i} className="grid grid-cols-4 gap-2 py-2 text-sm border-t border-gray-100 dark:border-gray-700">
-              <span className="text-gray-900 dark:text-white">{new Date(s.fecha).toLocaleDateString('es-ES')}</span>
+              <span className="text-gray-900 dark:text-white">{formatShortDate(s.fecha)}</span>
               <span className="capitalize text-gray-900 dark:text-white">{s.tipo_mercaderia}</span>
               <span className="text-right text-gray-900 dark:text-white">{s.cantidad} {s.unidad}</span>
               <span className="text-gray-600 dark:text-gray-400">{s.descripcion || '-'}</span>
