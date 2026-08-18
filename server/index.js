@@ -293,6 +293,87 @@ app.get('/api/export', async (req, res) => {
   });
 });
 
+// ---- AUDITORIA DE FECHAS (diaria a las 00:00 Paraguay) ----
+async function auditFechas() {
+  const today = localDateString();
+  const boletas = await db.all('SELECT id, numero, fecha, servicios, created_at FROM boletas');
+  let fixes = [];
+  let issues = [];
+
+  for (const b of boletas) {
+    const createdPY = localDateString(new Date(b.created_at));
+    
+    if (b.fecha !== createdPY) {
+      const diff = (new Date(b.fecha) - new Date(createdPY)) / 86400000;
+      if (diff === 1) {
+        await db.run('UPDATE boletas SET fecha = ? WHERE id = ?', [createdPY, b.id]);
+        fixes.push(`boleta ${b.numero}: ${b.fecha} -> ${createdPY}`);
+      } else {
+        issues.push(`boleta ${b.numero}: fecha=${b.fecha} created_PY=${createdPY} diff=${diff}d (manual review needed)`);
+      }
+    }
+
+    const servicios = JSON.parse(b.servicios || '[]');
+    let servChanged = false;
+    for (const srv of servicios) {
+      if (!srv.fecha) continue;
+      if (srv.fecha !== b.fecha) {
+        const diff = (new Date(srv.fecha) - new Date(b.fecha)) / 86400000;
+        if (diff === 1) {
+          srv.fecha = b.fecha;
+          servChanged = true;
+        }
+      }
+    }
+    if (servChanged) {
+      await db.run('UPDATE boletas SET servicios = ? WHERE id = ?', [JSON.stringify(servicios), b.id]);
+      fixes.push(`servicios boleta ${b.numero}: corregidos +1 dia`);
+    }
+  }
+
+  const result = {
+    date: today,
+    total_boletas: boletas.length,
+    fixes_applied: fixes.length,
+    manual_review_needed: issues.length,
+    fixes,
+    issues
+  };
+
+  if (fixes.length > 0) {
+    broadcast('data_changed', { store: 'boletas' });
+  }
+
+  console.log(`[AUDIT ${today}] ${fixes.length} fixes, ${issues.length} issues, ${boletas.length} total`);
+  return result;
+}
+
+// Check every 60 seconds if it's midnight Paraguay time
+let lastAuditDate = '';
+setInterval(async () => {
+  try {
+    const pyNow = new Date().toLocaleString('en-US', { timeZone: 'America/Asuncion' });
+    const pyDate = new Date(pyNow);
+    const todayPY = localDateString(pyDate);
+    if (pyDate.getHours() === 0 && pyDate.getMinutes() === 0 && lastAuditDate !== todayPY) {
+      lastAuditDate = todayPY;
+      console.log(`[CRON] Running daily date audit for ${todayPY}`);
+      await auditFechas();
+    }
+  } catch (e) {
+    console.error('[CRON] Audit error:', e.message);
+  }
+}, 60000);
+
+app.get('/api/audit-fechas', async (req, res) => {
+  try {
+    const result = await auditFechas();
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- SEED ----
 app.post('/api/seed', async (req, res) => {
   const row = await db.get('SELECT COUNT(*) as c FROM users', []);
