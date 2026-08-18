@@ -1,9 +1,15 @@
 ﻿const DB_PREFIX = "tierrapy_";
 const API = import.meta.env.VITE_API_URL || '/api';
 
+function getCurrentUserForLog() {
+  try { return JSON.parse(localStorage.getItem('tierrapy_user')); } catch { return null; }
+}
+
 async function _req(method, path, body) {
   try {
     const opts = { method, headers: {} };
+    const user = getCurrentUserForLog();
+    if (user?.username) opts.headers['X-Username'] = user.username;
     if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
     const r = await fetch(API + path, opts);
     if (!r.ok) return null;
@@ -359,14 +365,6 @@ export async function deleteMercaderia(id) {
   logActivity('delete', 'mercaderia', id, { nombre: deleted?.nombre });
 }
 
-// ---- ACTIVITY LOGGING ----
-function getCurrentUserForLog() {
-  try {
-    const u = localStorage.getItem('tierrapy_user');
-    return u ? JSON.parse(u) : null;
-  } catch { return null; }
-}
-
 export async function logActivity(action, entity_type, entity_id = null, details = {}) {
   const user = getCurrentUserForLog();
   const entry = {
@@ -378,9 +376,7 @@ export async function logActivity(action, entity_type, entity_id = null, details
     details,
     created_at: new Date().toISOString()
   };
-  // Fire-and-forget to server
   _req('POST', '/activity', entry).catch(() => {});
-  // Also store locally
   const logs = loadStore(STORES.ACTIVITY);
   logs.unshift(entry);
   if (logs.length > 500) logs.length = 500;

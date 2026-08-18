@@ -66,6 +66,19 @@ function broadcast(event, data = {}) {
   sseClients.forEach(c => c.write(msg));
 }
 
+// ---- ACTIVITY LOG HELPER ----
+async function logActivity(username, action, entity_type, entity_id = null, details = {}) {
+  const now = new Date().toISOString();
+  await db.run(
+    'INSERT INTO activity_logs (user_id, username, action, entity_type, entity_id, details, created_at) VALUES (?,?,?,?,?,?,?)',
+    [null, username || '', action, entity_type, entity_id || null, JSON.stringify(details), now]
+  );
+}
+
+function getUsername(req) {
+  return req.headers['x-username'] || req.body?._username || '';
+}
+
 // ---- USERS ----
 app.get('/api/users', async (req, res) => {
   const users = await db.all('SELECT * FROM users');
@@ -84,6 +97,7 @@ app.post('/api/users', async (req, res) => {
   }
   broadcast('data_changed', { store: 'users' });
   broadcast('data_changed', { store: 'vehiculos' });
+  await logActivity(getUsername(req), 'create', 'user', r.lastInsertRowid, { nombre: req.body.nombre, username: req.body.username });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 
@@ -98,6 +112,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
   broadcast('data_changed', { store: 'users' });
   broadcast('data_changed', { store: 'vehiculos' });
+  await logActivity(getUsername(req), 'update', 'user', req.params.id, { nombre: req.body.nombre, username: req.body.username });
   res.json({ success: true });
 });
 
@@ -109,6 +124,7 @@ app.delete('/api/users/:id', async (req, res) => {
   }
   broadcast('data_changed', { store: 'users' });
   broadcast('data_changed', { store: 'vehiculos' });
+  await logActivity(getUsername(req), 'delete', 'user', req.params.id, { nombre: oldUser?.nombre, username: oldUser?.username });
   res.json({ success: true });
 });
 
@@ -123,18 +139,21 @@ app.get('/api/empresas/:id', async (req, res) => {
 app.post('/api/empresas', async (req, res) => {
   const r = await db.run('INSERT INTO empresas (nombre, direccion, ruc, telefono) VALUES (?,?,?,?)', [req.body.nombre, req.body.direccion, req.body.ruc || '', req.body.telefono || '']);
   broadcast('data_changed', { store: 'empresas' });
+  await logActivity(getUsername(req), 'create', 'empresa', r.lastInsertRowid, { nombre: req.body.nombre });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 
 app.put('/api/empresas/:id', async (req, res) => {
   await db.run('UPDATE empresas SET nombre=?, direccion=?, ruc=?, telefono=? WHERE id=?', [req.body.nombre, req.body.direccion, req.body.ruc || '', req.body.telefono || '', req.params.id]);
   broadcast('data_changed', { store: 'empresas' });
+  await logActivity(getUsername(req), 'update', 'empresa', req.params.id, { nombre: req.body.nombre });
   res.json({ success: true });
 });
 
 app.delete('/api/empresas/:id', async (req, res) => {
   await db.run('DELETE FROM empresas WHERE id=?', [req.params.id]);
   broadcast('data_changed', { store: 'empresas' });
+  await logActivity(getUsername(req), 'delete', 'empresa', req.params.id);
   res.json({ success: true });
 });
 
@@ -153,6 +172,7 @@ app.post('/api/vehiculos', async (req, res) => {
   }
   broadcast('data_changed', { store: 'vehiculos' });
   broadcast('data_changed', { store: 'users' });
+  await logActivity(getUsername(req), 'create', 'vehiculo', r.lastInsertRowid, { chapa: req.body.chapa, tipo: req.body.tipo });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 
@@ -167,6 +187,7 @@ app.put('/api/vehiculos/:id', async (req, res) => {
   }
   broadcast('data_changed', { store: 'vehiculos' });
   broadcast('data_changed', { store: 'users' });
+  await logActivity(getUsername(req), 'update', 'vehiculo', req.params.id, { chapa: req.body.chapa, tipo: req.body.tipo });
   res.json({ success: true });
 });
 
@@ -178,6 +199,7 @@ app.delete('/api/vehiculos/:id', async (req, res) => {
   }
   broadcast('data_changed', { store: 'vehiculos' });
   broadcast('data_changed', { store: 'users' });
+  await logActivity(getUsername(req), 'delete', 'vehiculo', req.params.id, { chapa: oldVeh?.chapa, tipo: oldVeh?.tipo });
   res.json({ success: true });
 });
 
@@ -187,18 +209,21 @@ app.get('/api/mercaderias', async (req, res) => res.json(await db.all('SELECT * 
 app.post('/api/mercaderias', async (req, res) => {
   const r = await db.run('INSERT OR IGNORE INTO mercaderias (nombre) VALUES (?)', [req.body.nombre]);
   broadcast('data_changed', { store: 'mercaderias' });
+  await logActivity(getUsername(req), 'create', 'mercaderia', r.lastInsertRowid, { nombre: req.body.nombre });
   res.json({ ...req.body, id: r.lastInsertRowid });
 });
 
 app.put('/api/mercaderias/:id', async (req, res) => {
   await db.run('UPDATE mercaderias SET nombre=? WHERE id=?', [req.body.nombre, req.params.id]);
   broadcast('data_changed', { store: 'mercaderias' });
+  await logActivity(getUsername(req), 'update', 'mercaderia', req.params.id, { nombre: req.body.nombre });
   res.json({ success: true });
 });
 
 app.delete('/api/mercaderias/:id', async (req, res) => {
   await db.run('DELETE FROM mercaderias WHERE id=?', [req.params.id]);
   broadcast('data_changed', { store: 'mercaderias' });
+  await logActivity(getUsername(req), 'delete', 'mercaderia', req.params.id);
   res.json({ success: true });
 });
 
@@ -222,6 +247,7 @@ app.post('/api/boletas', async (req, res) => {
   await db.run("INSERT INTO config (key, value) VALUES ('boleta_counter', ?) ON CONFLICT(key) DO UPDATE SET value=?", [String(num), String(num)]);
   const r = await db.run(`INSERT INTO boletas (numero, fecha, conductor_id, conductor_nombre, chapa, vehiculo_label, empresa_id, empresa_nombre, direccion_entrega, telefono_empresa, factura_numero, observacion, total_m3, resumen_total, servicios, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [String(num).padStart(3, '0'), fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, now]);
   broadcast('data_changed', { store: 'boletas' });
+  await logActivity(getUsername(req), 'create', 'boleta', r.lastInsertRowid, { numero: String(num).padStart(3, '0'), empresa: req.body.empresa_nombre, conductor: req.body.conductor_nombre });
   res.json({ ...req.body, id: r.lastInsertRowid, numero: String(num).padStart(3, '0'), created_at: now, updated_at: now, servicios: req.body.servicios || [] });
 });
 
@@ -229,12 +255,15 @@ app.put('/api/boletas/:id', async (req, res) => {
   const now = new Date().toISOString();
   await db.run('UPDATE boletas SET fecha=?, conductor_id=?, conductor_nombre=?, chapa=?, vehiculo_label=?, empresa_id=?, empresa_nombre=?, direccion_entrega=?, telefono_empresa=?, factura_numero=?, observacion=?, total_m3=?, resumen_total=?, servicios=?, updated_at=? WHERE id=?', [req.body.fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, req.params.id]);
   broadcast('data_changed', { store: 'boletas' });
+  await logActivity(getUsername(req), 'update', 'boleta', req.params.id, { empresa: req.body.empresa_nombre, conductor: req.body.conductor_nombre });
   res.json({ success: true });
 });
 
 app.delete('/api/boletas/:id', async (req, res) => {
+  const old = await db.get('SELECT numero, empresa_nombre FROM boletas WHERE id=?', [req.params.id]);
   await db.run('DELETE FROM boletas WHERE id=?', [req.params.id]);
   broadcast('data_changed', { store: 'boletas' });
+  await logActivity(getUsername(req), 'delete', 'boleta', req.params.id, { numero: old?.numero, empresa: old?.empresa_nombre });
   res.json({ success: true });
 });
 
@@ -248,9 +277,11 @@ app.get('/api/config', async (req, res) => {
 
 app.post('/api/config', async (req, res) => {
   for (const [k, v] of Object.entries(req.body)) {
+    if (k === '_username') continue;
     await db.run("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", [k, String(v)]);
   }
   broadcast('data_changed', { store: 'config' });
+  await logActivity(getUsername(req), 'update', 'config', null, { keys: Object.keys(req.body).filter(k => k !== '_username') });
   res.json({ success: true });
 });
 
@@ -277,6 +308,7 @@ app.post('/api/import', async (req, res) => {
   if (data.boletas) { for (const b of data.boletas) await db.run('INSERT INTO boletas (id,numero,fecha,conductor_id,conductor_nombre,chapa,vehiculo_label,empresa_id,empresa_nombre,direccion_entrega,telefono_empresa,factura_numero,observacion,total_m3,resumen_total,servicios,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [b.id, b.numero, b.fecha, b.conductor_id, b.conductor_nombre, b.chapa || '', b.vehiculo_label || '', b.empresa_id, b.empresa_nombre, b.direccion_entrega, b.telefono_empresa || '', b.factura_numero || '', b.observacion || '', b.total_m3 || 0, b.resumen_total || '', JSON.stringify(b.servicios || []), b.created_at, b.updated_at]); }
   if (data.config) { for (const [k, v] of Object.entries(data.config)) await db.run('INSERT OR REPLACE INTO config (key,value) VALUES (?,?)', [k, String(v)]); }
   broadcast('data_changed', { store: 'all' });
+  await logActivity(getUsername(req), 'import', 'all', null, { boletas: data.boletas?.length || 0, users: data.users?.length || 0 });
   res.json({ success: true });
 });
 
