@@ -244,15 +244,21 @@ app.get('/api/boletas/:id', async (req, res) => {
 });
 
 app.post('/api/boletas', async (req, res) => {
-  const now = new Date().toISOString();
-  const fecha = req.body.fecha || localDateString();
-  const counter = await db.get("SELECT value FROM config WHERE key='boleta_counter'", []);
-  const num = (parseInt(counter?.value || '0') + 1);
-  await db.run("INSERT INTO config (key, value) VALUES ('boleta_counter', ?) ON CONFLICT(key) DO UPDATE SET value=?", [String(num), String(num)]);
-  const r = await db.run(`INSERT INTO boletas (numero, fecha, conductor_id, conductor_nombre, chapa, vehiculo_label, empresa_id, empresa_nombre, direccion_entrega, telefono_empresa, factura_numero, observacion, total_m3, resumen_total, servicios, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [String(num).padStart(3, '0'), fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, now]);
-  broadcast('data_changed', { store: 'boletas' });
-  await logActivity(getUsername(req), 'create', 'boleta', r.lastInsertRowid, { numero: String(num).padStart(3, '0'), empresa: req.body.empresa_nombre, conductor: req.body.conductor_nombre });
-  res.json({ ...req.body, id: r.lastInsertRowid, numero: String(num).padStart(3, '0'), created_at: now, updated_at: now, servicios: req.body.servicios || [] });
+  try {
+    const now = new Date().toISOString();
+    const fecha = req.body.fecha || localDateString();
+    // Atomic counter: increment + return in one statement (no race condition)
+    await db.run("INSERT INTO config (key, value) VALUES ('boleta_counter', '0') ON CONFLICT(key) DO NOTHING", []);
+    const row = await db.get("UPDATE config SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT) WHERE key = 'boleta_counter' RETURNING value", []);
+    const num = parseInt(row?.value || '1');
+    const r = await db.run(`INSERT INTO boletas (numero, fecha, conductor_id, conductor_nombre, chapa, vehiculo_label, empresa_id, empresa_nombre, direccion_entrega, telefono_empresa, factura_numero, observacion, total_m3, resumen_total, servicios, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [String(num).padStart(3, '0'), fecha, req.body.conductor_id, req.body.conductor_nombre, req.body.chapa || '', req.body.vehiculo_label || '', req.body.empresa_id, req.body.empresa_nombre, req.body.direccion_entrega, req.body.telefono_empresa || '', req.body.factura_numero || '', req.body.observacion || '', req.body.total_m3 || 0, req.body.resumen_total || '', JSON.stringify(req.body.servicios || []), now, now]);
+    broadcast('data_changed', { store: 'boletas' });
+    await logActivity(getUsername(req), 'create', 'boleta', r.lastInsertRowid, { numero: String(num).padStart(3, '0'), empresa: req.body.empresa_nombre, conductor: req.body.conductor_nombre });
+    res.json({ ...req.body, id: r.lastInsertRowid, numero: String(num).padStart(3, '0'), created_at: now, updated_at: now, servicios: req.body.servicios || [] });
+  } catch (e) {
+    console.error('[BOLETA CREATE]', e.message);
+    res.status(500).json({ error: 'Error creando boleta' });
+  }
 });
 
 app.put('/api/boletas/:id', async (req, res) => {

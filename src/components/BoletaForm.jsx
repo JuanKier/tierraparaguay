@@ -12,6 +12,7 @@ export default function BoletaForm({ user }) {
   const { id } = useParams()
   const isEditing = !!id
 
+  const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
       fecha: localDateString(), 
     conductor_id: user.id,
@@ -118,10 +119,13 @@ export default function BoletaForm({ user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (saving) return
+    setSaving(true)
     
     const serviciosValidos = servicios.filter(s => s.cantidad && parseFloat(s.cantidad) > 0)
     if (serviciosValidos.length === 0) {
       alert('Debe agregar al menos un servicio con cantidad')
+      setSaving(false)
       return
     }
 
@@ -134,7 +138,6 @@ export default function BoletaForm({ user }) {
       .map(([u, c]) => `${c} ${u}`)
       .join(', ')
 
-    // vehiculo_label si no hay chapa
     const conductorSel = conductores.find(c => Number(c.id) === Number(formData.conductor_id))
     let vehiculo_label = ''
     if (!formData.chapa && conductorSel?.vehiculo_id) {
@@ -151,12 +154,17 @@ export default function BoletaForm({ user }) {
       fecha: localDateString()
     }
 
-    if (isEditing) {
-      await updateBoleta(id, boletaData)
-      navigate('/')
-    } else {
-      const newBoleta = await addBoleta(boletaData)
-      navigate('/boleta/' + newBoleta.id)
+    try {
+      if (isEditing) {
+        await updateBoleta(id, boletaData)
+        navigate('/')
+      } else {
+        const newBoleta = await addBoleta(boletaData)
+        navigate('/boleta/' + newBoleta.id)
+      }
+    } catch (e) {
+      console.error('Error saving boleta:', e)
+      setSaving(false)
     }
   }
 
@@ -458,9 +466,10 @@ export default function BoletaForm({ user }) {
         <div className="flex gap-3">
           <button
             type="submit"
-            className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-lg transition"
+            disabled={saving}
+            className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-lg transition disabled:opacity-50"
           >
-            {isEditing ? 'Actualizar Boleta' : 'Crear Boleta'}
+            {saving ? 'Guardando...' : isEditing ? 'Actualizar Boleta' : 'Crear Boleta'}
           </button>
           <button
             type="button"

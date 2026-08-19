@@ -142,24 +142,22 @@ export async function getUserByUsername(username) {
 
 export async function addUser(data) {
   const r = await _req('POST', '/users', data);
-  if (r) { logActivity('create', 'user', r.id, { nombre: data.nombre, username: data.username }); return r; }
+  if (r) return r;
   const users = loadStore(STORES.USERS);
   const newUser = { ...data, id: generateId() };
   users.push(newUser);
   saveStore(STORES.USERS, users);
-  logActivity('create', 'user', newUser.id, { nombre: data.nombre, username: data.username });
   return newUser;
 }
 
 export async function updateUser(id, data) {
   const r = await _req('PUT', '/users/' + id, data);
-  if (r) { logActivity('update', 'user', id, { nombre: data.nombre, username: data.username }); return r; }
+  if (r) return r;
   const users = loadStore(STORES.USERS);
   const index = users.findIndex(u => Number(u.id) === Number(id));
   if (index !== -1) {
     users[index] = { ...data, id };
     saveStore(STORES.USERS, users);
-    logActivity('update', 'user', id, { nombre: data.nombre, username: data.username });
     return users[index];
   }
   return null;
@@ -167,11 +165,9 @@ export async function updateUser(id, data) {
 
 export async function deleteUser(id) {
   const r = await _req('DELETE', '/users/' + id);
-  if (r) { logActivity('delete', 'user', id, {}); return; }
+  if (r) return;
   const users = loadStore(STORES.USERS);
-  const deleted = users.find(u => Number(u.id) === Number(id));
   saveStore(STORES.USERS, users.filter(u => Number(u.id) !== Number(id)));
-  logActivity('delete', 'user', id, { nombre: deleted?.nombre, username: deleted?.username });
 }
 
 export async function getAllBoletas() {
@@ -189,7 +185,7 @@ export async function getBoletaById(id) {
 
 export async function addBoleta(data) {
   const r = await _req('POST', '/boletas', data);
-  if (r) { logActivity('create', 'boleta', r.id, { numero: r.numero, empresa: data.empresa_nombre }); return r; }
+  if (r) return r;
   const boletas = loadStore(STORES.BOLETAS);
   const config = loadStore(STORES.CONFIG);
   config.boleta_counter = (config.boleta_counter || 0) + 1;
@@ -204,19 +200,17 @@ export async function addBoleta(data) {
   delete newBoleta.estado;
   boletas.push(newBoleta);
   saveStore(STORES.BOLETAS, boletas);
-  logActivity('create', 'boleta', newBoleta.id, { numero: newBoleta.numero, empresa: data.empresa_nombre });
   return newBoleta;
 }
 
 export async function updateBoleta(id, data) {
   const r = await _req('PUT', '/boletas/' + id, data);
-  if (r) { logActivity('update', 'boleta', id, { empresa: data.empresa_nombre }); return r; }
+  if (r) return r;
   const boletas = loadStore(STORES.BOLETAS);
   const index = boletas.findIndex(b => Number(b.id) === Number(id));
   if (index !== -1) {
     boletas[index] = { ...boletas[index], ...data, updated_at: new Date().toISOString() };
     saveStore(STORES.BOLETAS, boletas);
-    logActivity('update', 'boleta', id, { empresa: data.empresa_nombre });
     return boletas[index];
   }
   return null;
@@ -224,11 +218,9 @@ export async function updateBoleta(id, data) {
 
 export async function deleteBoleta(id) {
   const r = await _req('DELETE', '/boletas/' + id);
-  if (r) { logActivity('delete', 'boleta', id, {}); return; }
+  if (r) return;
   const boletas = loadStore(STORES.BOLETAS);
-  const deleted = boletas.find(b => Number(b.id) === Number(id));
   saveStore(STORES.BOLETAS, boletas.filter(b => Number(b.id) !== Number(id)));
-  logActivity('delete', 'boleta', id, { numero: deleted?.numero, empresa: deleted?.empresa_nombre });
 }
 
 export async function getAllEmpresas() {
@@ -246,24 +238,22 @@ export async function getEmpresaById(id) {
 
 export async function addEmpresa(data) {
   const r = await _req('POST', '/empresas', data);
-  if (r) { logActivity('create', 'empresa', r.id, { nombre: data.nombre }); return r; }
+  if (r) return r;
   const empresas = loadStore(STORES.EMPRESAS);
   const newEmpresa = { ...data, id: generateId() };
   empresas.push(newEmpresa);
   saveStore(STORES.EMPRESAS, empresas);
-  logActivity('create', 'empresa', newEmpresa.id, { nombre: data.nombre });
   return newEmpresa;
 }
 
 export async function updateEmpresa(id, data) {
   const r = await _req('PUT', '/empresas/' + id, data);
-  if (r) { logActivity('update', 'empresa', id, { nombre: data.nombre }); return r; }
+  if (r) return r;
   const empresas = loadStore(STORES.EMPRESAS);
   const index = empresas.findIndex(e => Number(e.id) === Number(id));
   if (index !== -1) {
     empresas[index] = { ...data, id };
     saveStore(STORES.EMPRESAS, empresas);
-    logActivity('update', 'empresa', id, { nombre: data.nombre });
     return empresas[index];
   }
   return null;
@@ -271,11 +261,9 @@ export async function updateEmpresa(id, data) {
 
 export async function deleteEmpresa(id) {
   const r = await _req('DELETE', '/empresas/' + id);
-  if (r) { logActivity('delete', 'empresa', id, {}); return; }
+  if (r) return;
   const empresas = loadStore(STORES.EMPRESAS);
-  const deleted = empresas.find(e => Number(e.id) === Number(id));
   saveStore(STORES.EMPRESAS, empresas.filter(e => Number(e.id) !== Number(id)));
-  logActivity('delete', 'empresa', id, { nombre: deleted?.nombre });
 }
 
 export async function getAllVehiculos() {
@@ -293,24 +281,22 @@ export async function getVehiculoById(id) {
 
 export async function addVehiculo(data) {
   const r = await _req('POST', '/vehiculos', data);
-  if (r) { logActivity('create', 'vehiculo', r.id, { chapa: data.chapa, tipo: data.tipo }); return r; }
+  if (r) return r;
   const vehiculos = loadStore(STORES.VEHICULOS);
   const newVehiculo = { ...data, id: generateId() };
   vehiculos.push(newVehiculo);
   saveStore(STORES.VEHICULOS, vehiculos);
-  logActivity('create', 'vehiculo', newVehiculo.id, { chapa: data.chapa, tipo: data.tipo });
   return newVehiculo;
 }
 
 export async function updateVehiculo(id, data) {
   const r = await _req('PUT', '/vehiculos/' + id, data);
-  if (r) { logActivity('update', 'vehiculo', id, { chapa: data.chapa, tipo: data.tipo }); return r; }
+  if (r) return r;
   const vehiculos = loadStore(STORES.VEHICULOS);
   const index = vehiculos.findIndex(v => Number(v.id) === Number(id));
   if (index !== -1) {
     vehiculos[index] = { ...data, id };
     saveStore(STORES.VEHICULOS, vehiculos);
-    logActivity('update', 'vehiculo', id, { chapa: data.chapa, tipo: data.tipo });
     return vehiculos[index];
   }
   return null;
@@ -318,11 +304,9 @@ export async function updateVehiculo(id, data) {
 
 export async function deleteVehiculo(id) {
   const r = await _req('DELETE', '/vehiculos/' + id);
-  if (r) { logActivity('delete', 'vehiculo', id, {}); return; }
+  if (r) return;
   const vehiculos = loadStore(STORES.VEHICULOS);
-  const deleted = vehiculos.find(v => Number(v.id) === Number(id));
   saveStore(STORES.VEHICULOS, vehiculos.filter(v => Number(v.id) !== Number(id)));
-  logActivity('delete', 'vehiculo', id, { chapa: deleted?.chapa, tipo: deleted?.tipo });
 }
 
 export async function getAllMercaderias() {
@@ -333,24 +317,22 @@ export async function getAllMercaderias() {
 
 export async function addMercaderia(data) {
   const r = await _req('POST', '/mercaderias', data);
-  if (r) { logActivity('create', 'mercaderia', r.id, { nombre: data.nombre }); return r; }
+  if (r) return r;
   const mercaderias = loadStore(STORES.MERCADERIAS);
   const newItem = { ...data, id: generateId() };
   mercaderias.push(newItem);
   saveStore(STORES.MERCADERIAS, mercaderias);
-  logActivity('create', 'mercaderia', newItem.id, { nombre: data.nombre });
   return newItem;
 }
 
 export async function updateMercaderia(id, data) {
   const r = await _req('PUT', '/mercaderias/' + id, data);
-  if (r) { logActivity('update', 'mercaderia', id, { nombre: data.nombre }); return r; }
+  if (r) return r;
   const mercaderias = loadStore(STORES.MERCADERIAS);
   const index = mercaderias.findIndex(m => Number(m.id) === Number(id));
   if (index !== -1) {
     mercaderias[index] = { ...data, id };
     saveStore(STORES.MERCADERIAS, mercaderias);
-    logActivity('update', 'mercaderia', id, { nombre: data.nombre });
     return mercaderias[index];
   }
   return null;
@@ -358,11 +340,9 @@ export async function updateMercaderia(id, data) {
 
 export async function deleteMercaderia(id) {
   const r = await _req('DELETE', '/mercaderias/' + id);
-  if (r) { logActivity('delete', 'mercaderia', id, {}); return; }
+  if (r) return;
   const mercaderias = loadStore(STORES.MERCADERIAS);
-  const deleted = mercaderias.find(m => Number(m.id) === Number(id));
   saveStore(STORES.MERCADERIAS, mercaderias.filter(m => Number(m.id) !== Number(id)));
-  logActivity('delete', 'mercaderia', id, { nombre: deleted?.nombre });
 }
 
 export async function logActivity(action, entity_type, entity_id = null, details = {}) {
