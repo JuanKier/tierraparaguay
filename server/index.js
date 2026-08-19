@@ -68,11 +68,15 @@ function broadcast(event, data = {}) {
 
 // ---- ACTIVITY LOG HELPER ----
 async function logActivity(username, action, entity_type, entity_id = null, details = {}) {
-  const now = new Date().toISOString();
-  await db.run(
-    'INSERT INTO activity_logs (user_id, username, action, entity_type, entity_id, details, created_at) VALUES (?,?,?,?,?,?,?)',
-    [null, username || '', action, entity_type, entity_id || null, JSON.stringify(details), now]
-  );
+  try {
+    const now = new Date().toISOString();
+    await db.run(
+      'INSERT INTO activity_logs (user_id, username, action, entity_type, entity_id, details, created_at) VALUES (?,?,?,?,?,?,?)',
+      [null, username || '', action, entity_type, entity_id || null, JSON.stringify(details), now]
+    );
+  } catch (e) {
+    console.error('[ACTIVITY] Log failed:', e.message);
+  }
 }
 
 function getUsername(req) {
@@ -474,4 +478,16 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// Safety: prevent crashes from unhandled async errors
+process.on('unhandledRejection', (err) => {
+  console.error('[UNHANDLED]', err?.message || err);
+});
+
+// Express error handler
+app.use((err, req, res, next) => {
+  console.error('[ERROR]', req.method, req.path, err?.message);
+  res.status(500).json({ error: 'internal error' });
+});
+
 app.listen(PORT, '0.0.0.0', () => console.log(`Tierrapy server on :${PORT}`));
