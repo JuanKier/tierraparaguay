@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useSSE } from '../hooks/useSSE'
 import { getAllBoletas, getAllEmpresas, getAllUsers, getAllVehiculos } from '../db/database'
@@ -6,18 +6,19 @@ import { localDateString, formatShortDate } from '../utils/format'
 
 export default function Remisiones({ user }) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [boletas, setBoletas] = useState([])
   const [filtered, setFiltered] = useState([])
   const [empresas, setEmpresas] = useState([])
   const [conductores, setConductores] = useState([])
   const [vehiculos, setVehiculos] = useState([])
-  const [verTodo, setVerTodo] = useState(false)
+  const [verTodo, setVerTodo] = useState(searchParams.get('verTodo') === '1')
   const [filters, setFilters] = useState({
-    empresa_id: '',
-    fecha_desde: '',
-    fecha_hasta: '',
-    conductor_id: '',
-    vehiculo_id: ''
+    empresa_id: searchParams.get('empresa_id') || '',
+    fecha_desde: searchParams.get('fecha_desde') || '',
+    fecha_hasta: searchParams.get('fecha_hasta') || '',
+    conductor_id: searchParams.get('conductor_id') || '',
+    vehiculo_id: searchParams.get('vehiculo_id') || ''
   })
   const isSuper = user.role === 'superadmin'
 
@@ -28,6 +29,13 @@ export default function Remisiones({ user }) {
   useEffect(() => {
     applyFilters()
   }, [filters, boletas, verTodo])
+
+  useEffect(() => {
+    const params = {}
+    for (const [k, v] of Object.entries(filters)) { if (v) params[k] = v }
+    if (verTodo) params.verTodo = '1'
+    setSearchParams(params, { replace: true })
+  }, [filters, verTodo])
 
   const loadData = async () => {
     let [boletasData, empresasData, usersData, vehiculosData] = await Promise.all([
