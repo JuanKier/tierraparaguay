@@ -287,7 +287,7 @@ export default function BoletaDetail({ user }) {
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate(-1)}
           className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg text-sm font-medium active:scale-95 transition"
         >
           Volver
